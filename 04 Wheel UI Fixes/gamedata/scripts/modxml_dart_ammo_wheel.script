@@ -1,0 +1,133 @@
+DART.AMMO_WHEEL = {
+  -- wheel textures are not properly centered
+  center = {x = 220, y = 232},
+  radius = nil,
+}
+
+
+ELEMENT_QUERIES = {
+  wheel = "wheel",
+  background = "wheel > background",
+  result = "wheel > result",
+  btn = "ammo > btn",
+  icon = "ammo > icon",
+  num = "ammo > num",
+  text = "ammo > text",
+  rtext = "ammo > text_r",
+  highlight = "ammo > highlight",
+  box1 = "wheel > alt > box_1",
+  box4 = "wheel > alt > box_4",
+  box7 = "wheel > alt > box_7",
+}
+
+
+-- resolve nil values in DART.MINIMAP with XML data
+function collectOptions(DXML, elements)
+  local options = {}
+  copy_table(options, DART.AMMO_WHEEL)
+
+  if options.center == nil and elements.wheel then
+    local width  = DXML:getElementAttr(elements.wheel).width
+    local height = DXML:getElementAttr(elements.wheel).height
+
+    if width ~= nil and height ~= nil then
+      options.center = {x = width / 2, y = height / 2}
+    end
+  end
+
+  if options.radius == nil and elements.box1 then
+    local x = DXML:getElementAttr(elements.box1).x
+    local y = DXML:getElementAttr(elements.box1).y
+
+    if x ~= nil and y ~= nil then
+      options.radius = math.sqrt(
+        (options.center.x - x)^2 + (options.center.y - y)^2
+      )
+    end
+  end
+
+  return options
+end
+
+
+-- radially positions wheel items around the wheel
+function adjustWheel(DXML, elements, options)
+  if elements.wheel then
+    DART.changeAttributes(DXML, elements.wheel, function(attrs)
+      return {
+        width = attrs.width / DART.getAspectRatioVs4x3(),
+        x = DART.baseWidth / 2,
+        y = DART.baseHeight / 2,
+        alignment = "c",
+      }
+    end)
+  end
+
+  -- adjust element widths
+  for _, element in ipairs({
+    elements.background,
+    elements.result,
+    elements.btn,
+    elements.icon,
+    elements.num,
+    elements.text,
+    elements.rtext,
+    elements.highlight,
+    elements.box1,
+    elements.box4,
+    elements.box7,
+  }) do
+    if element then
+      DART.changeAttributes(DXML, element, function(attrs)
+        return {width = attrs.width / DART.getAspectRatioVs4x3()}
+      end)
+    end
+  end
+
+  -- center align all wheel items
+  for _, element in ipairs({
+    elements.box1,
+    elements.box4,
+    elements.box7,
+  }) do
+    if element then
+      DXML:setElementAttr(element, {alignment = "c"})
+    end
+  end
+
+  -- position wheel items
+  DART.setRadialPosition(DXML, elements.box1, 210, options.radius, options.center)
+  DART.setRadialPosition(DXML, elements.box4, 330, options.radius, options.center)
+  DART.setRadialPosition(DXML, elements.box7, 90, options.radius, options.center)
+
+  -- center result in wheel
+  if elements.result then
+    DXML:setElementAttr(elements.result, {
+      x = options.center.x / DART.getAspectRatioVs4x3(),
+      y = options.center.y,
+      alignment = "c",
+    })
+  end
+end
+
+
+function onReadUIWheelXML(filename, DXML)
+  if
+    not filename:find([[^ui\ui_wheel_ammo]])
+    or DART.getAspectRatioVs16x9() <= 1
+  then
+    return
+  end
+
+  DART.log("AMMO_WHEEL", "Parsing " .. filename)
+
+  local elements = DART.collectElements(DXML, ELEMENT_QUERIES)
+  local options  = collectOptions(DXML, elements)
+
+  adjustWheel(DXML, elements, options)
+end
+
+
+function on_xml_read()
+  RegisterScriptCallback("on_xml_read", onReadUIWheelXML)
+end

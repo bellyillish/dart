@@ -1,0 +1,51 @@
+DART.INVENTORY = {
+  gridLine = nil,
+  gridSize = nil,
+}
+
+
+-- by default grid auto-resizing is only applied to these container IDs
+function isAutoResizable(container)
+  return
+    container.ID    == "actor_bag"
+    or container.ID == "actor_trade"
+    or container.ID == "actor_trade_bag"
+    or container.ID == "npc_bag"
+    or container.ID == "npc_trade"
+    or container.ID == "npc_trade_bag"
+end
+
+
+local utilsUIUICellContainer = utils_ui.UICellContainer.InitControls
+
+
+-- monkey patch for grid overrides
+function utils_ui.UICellContainer:InitControls(owner, prof, ele_base)
+  if DART.getAspectRatioVs16x9() <= 1 then
+    return utilsUIUICellContainer(self, owner, prof, ele_base)
+  end
+
+  DART.log("INVENTORY", "Monkey patching utils_ui.UICellContainer:InitControls")
+
+  local gridSize = DART.INVENTORY.gridSize or self.grid_size
+  local gridLine = DART.INVENTORY.gridLine or self.grid_line
+
+  if isAutoResizable(self) then
+    -- copy of code in overridden function, needed to use GetWidth()
+    local container = self.use_frame
+      and owner.xml:InitFrame(prof, ele_base)
+      or owner.xml:InitStatic(prof, ele_base)
+
+    local width = container:GetWidth()
+    local itemsPerRow = math.floor(width * DART.getAspectRatioVs4x3() / (gridSize + gridLine))
+    local cellSize = width * DART.getAspectRatioVs4x3() / itemsPerRow
+
+    gridSize = cellSize - gridLine
+  end
+
+  -- auto-resizing works best when grid_line is scaled to aspect ratio
+  self.grid_line = gridLine / DART.getAspectRatioVs4x3()
+  self.grid_size = gridSize
+
+  return utilsUIUICellContainer(self, owner, prof, ele_base)
+end

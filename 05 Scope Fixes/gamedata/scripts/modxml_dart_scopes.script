@@ -1,0 +1,86 @@
+DART.SCOPES = {
+  scaleModifiers = {
+    wpn_crosshair_bino = 1.333,
+    wpn_crosshair_4 = 1.112,
+  }
+}
+
+
+-- retreive a scope's scale modifier or return 1
+function getScaleModifier(DXML, elements)
+  if not elements[1] or not DXML:isElement(elements[1]) then
+    return 1
+  end
+
+  local texture = DXML:query("texture", elements[1])[1]
+  if not texture then
+    return 1
+  end
+
+  local textureName = DXML:getText(texture)
+  if not textureName then
+    return 1
+  end
+
+  return DART.SCOPES.scaleModifiers[textureName] or 1
+end
+
+
+-- dynamically center and un-stretch scope texture
+-- dynamically adjust left and right sides to fill remaining space
+function resizeScope(DXML, scope)
+  local elements = DXML:query("auto_static", scope)
+
+  -- only handle scopes with 3 parts (main, left, right)
+  if
+    #elements ~= 3
+    or not elements[1]
+    or not DXML:isElement(elements[1])
+    or not elements[2]
+    or not DXML:isElement(elements[2])
+    or not elements[3]
+    or not DXML:isElement(elements[3])
+  then
+    return
+  end
+
+  local scaleModifier = getScaleModifier(DXML, elements)
+
+  local textureWidth = DART.baseWidth * scaleModifier / DART.getAspectRatioVs4x3()
+  local fillerWidth  = (DART.baseWidth - textureWidth) / 2
+
+  -- scope texture
+  DXML:setElementAttr(elements[1], {
+    x = fillerWidth,
+    width = textureWidth,
+  })
+
+  -- left filler
+  DXML:setElementAttr(elements[2], {
+    width = fillerWidth
+  })
+
+  -- right filler
+  DXML:setElementAttr(elements[3], {
+    x = fillerWidth + textureWidth,
+    width = fillerWidth,
+  })
+end
+
+
+function onReadScopesXML(filename, DXML)
+  if
+    not filename:find([[^ui\scopes]])
+    or DART.getAspectRatioVs16x9() <= 1
+  then
+    return
+  end
+
+  DART.log("SCOPES", "Parsing " .. filename)
+  DART.recurseChildren(DXML, DXML:getRoot(), resizeScope)
+end
+
+
+function on_xml_read()
+  RegisterScriptCallback("on_xml_read", onReadScopesXML)
+end

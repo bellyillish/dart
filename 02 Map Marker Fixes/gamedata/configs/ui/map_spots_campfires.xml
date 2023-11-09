@@ -1,0 +1,27 @@
+<!-- Every map spot follows the same convention except for these -->
+
+<campfire_lit>
+  <level_map spot="campfire_lit_spot"/>
+  <mini_map spot="campfire_lit_spot_mini"/>
+</campfire_lit>
+
+<campfire_lit_spot x="0" y="0" width="25" height="25" alignment="c" location_level="1" scale_max="1">
+  <texture>ui_campfire_icon_lit</texture>
+</campfire_lit_spot>
+
+<campfire_lit_spot_mini x="0" y="0" width="25" height="25" alignment="c" location_level="1" scale_max="1">
+  <texture>ui_campfire_icon_lit</texture>
+</campfire_lit_spot_mini>
+
+<campfire_unlit>
+  <level_map spot="campfire_unlit_spot"/>
+  <mini_map spot="campfire_unlit_spot_mini"/>
+</campfire_unlit>
+
+<campfire_unlit_spot x="0" y="0" width="25" height="25" alignment="c" location_level="1" scale_max="1">
+  <texture>ui_campfire_icon_unlit</texture>
+</campfire_unlit_spot>
+
+<campfire_unlit_spot_mini x="0" y="0" width="25" height="25" alignment="c" location_level="1" scale_max="1">
+  <texture>ui_campfire_icon_unlit</texture>
+</campfire_unlit_spot_mini>

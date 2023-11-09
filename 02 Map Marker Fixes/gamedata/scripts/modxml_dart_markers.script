@@ -1,0 +1,82 @@
+DART.MARKERS = {}
+
+
+function isResizableMapSpot(DXML, element)
+  if not element or not DXML:isElement(element) then
+    return false
+  end
+
+  local attrs = DXML:getElementAttr(element)
+  local name  = DXML:getElementName(element)
+
+  -- 1. It must be a valid element with a width and height
+  -- 2. It can't be a texture or minimap marker
+  if
+    not attrs.width or attrs.width == 0
+    or not attrs.height or attrs.height == 0
+    or name == "texture"
+    or name:find("_mini_")
+    or name:find("_mini$")
+  then
+    return false
+  end
+
+  return true
+end
+
+
+-- resize map markers to correct width
+-- markers are counterintuitively squished instead of stretched
+function resizeMapSpot(DXML, element)
+  if not isResizableMapSpot(DXML, element) then
+    return
+  end
+
+  local attrs = DXML:getElementAttr(element)
+  local name  = DXML:getElementName(element)
+
+  local angle = attrs.heading_angle or 0
+  local widthChange  = attrs.width
+  local heightChange = attrs.height
+
+  -- factor aspect ratio (PDA works best using 16:9 as basis)
+  widthChange  = widthChange * (DART.getAspectRatioVs16x9() - 1)
+  heightChange = widthChange * (DART.getAspectRatioVs16x9() - 1)
+
+  -- factor angle and scale down if not 90 degrees
+  widthChange  = widthChange * (DART.abcosd(angle) - 0.5 * (angle % 90) / 45)
+  heightChange = heightChange * (DART.absind(angle) - 0.5 * (angle % 90) / 45)
+
+  DXML:setElementAttr(element, {
+    width = attrs.width + widthChange,
+    height = attrs.height + heightChange,
+    stretch = 1,
+  })
+
+  -- Extra fudge factor for blinky things
+  if name == "static_border" then
+    DXML:setElementAttr(element, {x = attrs.x + 1})
+  end
+
+  -- this specific animation screws everything up
+  DXML:removeElementAttr(element, {"xform_anim"})
+end
+
+
+function onReadMapSpotsXML(filename, DXML)
+  if
+    not filename:match([[^ui\map_spots]])
+    or DART.getAspectRatioVs16x9() <= 1
+    or not DART.isUsing3DPDA()
+  then
+    return
+  end
+
+  DART.log("MARKERS", "Parsing " .. filename)
+  DART.recurseChildren(DXML, DXML:getRoot(), resizeMapSpot)
+end
+
+
+function on_xml_read()
+  RegisterScriptCallback("on_xml_read", onReadMapSpotsXML)
+end

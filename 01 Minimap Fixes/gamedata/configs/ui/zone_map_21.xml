@@ -1,0 +1,28 @@
+<window>
+  <minimap>
+    <level_frame x="1.247" y="0.849" width="0.177" height="0.177" stretch="1" alignment="c" a="152" />
+
+    <background width="0.26" height="0.26" stretch="1" alignment="c">
+      <texture>ui\squaredov\minimap</texture>
+    </background>
+
+    <clock_wnd x="0.9" y="0.96" width="28" height="14" alignment="c">
+      <text x="0" y="0" font="letterica16" r="179" g="152" b="109" align="c" vert_align="c" />
+    </clock_wnd>
+
+    <compass x="0.5" y="0.5" width="200" height="200" stretch="1" heading="1" rounded="0" alignment="c">
+      <texture>ui\squaredov\compass</texture>
+    </compass>
+
+    <center width="32" height="32" stretch="1" alignment="c">
+      <texture>ui\squaredov\player</texture>
+    </center>
+
+    <static_counter x="0" y="0" width="32" height="32" alignment="c">
+      <texture>ui\squaredov\scounter</texture>
+      <text_static width="18" height="16">
+        <text align="c" font="letterica16" x="0" y="0" r="179" g="152" b="109" />
+      </text_static>
+    </static_counter>
+  </minimap>
+</window>

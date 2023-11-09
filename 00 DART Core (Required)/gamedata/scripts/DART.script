@@ -1,0 +1,127 @@
+-- most XML values are based on a 1024x768 screen
+baseWidth  = 1024
+baseHeight = 768
+
+aspectRatio4x3 = baseWidth / baseHeight
+aspectRatio16x9 = 16 / 9
+aspectRatio21x9 = 21 / 9
+
+-- for DART.log()
+enableLogging = false
+
+
+function cosd(degrees)
+  return math.cos(math.rad(degrees))
+end
+
+
+function sind(degrees)
+  return math.sin(math.rad(degrees))
+end
+
+
+function abcosd(degrees)
+  return math.abs(cosd(degrees))
+end
+
+
+function absind(degrees)
+  return math.abs(sind(degrees))
+end
+
+
+function isUsing3DPDA()
+  return get_console_cmd(1, "g_3d_pda")
+end
+
+
+function getAspectRatio()
+  return device().width / device().height
+end
+
+
+function getAspectRatioVs4x3()
+  local ratio = getAspectRatio() / DART.aspectRatio4x3
+  return ratio > 1 and ratio or 1
+end
+
+
+function getAspectRatioVs16x9()
+  local ratio = getAspectRatio() / DART.aspectRatio16x9
+  return ratio > 1 and ratio or 1
+end
+
+
+function getAspectRatioVs21x9()
+  local ratio = getAspectRatio() / DART.aspectRatio21x9
+  return ratio > 1 and ratio or 1
+end
+
+
+-- given a table of names and query strings, creates another table
+-- of names and the first matching element
+function collectElements(DXML, queryTable)
+  local elements = {}
+
+  for key, value in pairs(queryTable) do
+    elements[key] = DXML:query(value)[1]
+  end
+
+  return elements
+end
+
+
+-- recursively iterates all DXML nodes with a given callback
+-- (returning false will abort)
+function recurseChildren(DXML, element, callback)
+  if not element or not DXML:isElement(element) then
+    return
+  end
+
+  local continue = true
+
+  DXML:iterateChildren(element, function(child)
+    if continue then
+      continue = callback(DXML, child) ~= false
+    end
+    if continue then
+        continue = recurseChildren(DXML, child, callback) ~= false
+    end
+  end)
+
+  return continue
+end
+
+
+-- Sets element attrs with a callback that passes current attrs
+function changeAttributes(DXML, element, callback)
+  if not element or not DXML:isElement(element) then
+    return
+  end
+
+  DXML:setElementAttr(element, callback(
+    DXML:getElementAttr(element) or {}
+  ))
+end
+
+
+-- position an element radially from a given center {x, y}, radius, and angle
+function setRadialPosition(DXML, element, angle, radius, center)
+  if not element or not DXML:isElement(element) then
+    return
+  end
+
+  center = center or {x = 0, y = 0}
+
+  DXML:setElementAttr(element, {
+    x = (center.x + radius * cosd(angle)) / getAspectRatioVs4x3(),
+    y = center.y + radius * sind(angle),
+  })
+end
+
+
+function log(module, message)
+  if enableLogging then
+    printf("[DART] %s: %s", module, message)
+  end
+end

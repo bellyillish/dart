@@ -1,0 +1,218 @@
+DART.MINIMAP = {
+  size = nil,
+  alpha = nil,
+  align = nil,
+  padding = nil,
+  levelProportion = nil,
+  clockAlign = nil,
+  clockPadding = nil,
+}
+
+
+ELEMENT_QUERIES = {
+  levelFrame = "minimap > level_frame",
+  background = "minimap > background",
+  compass = "minimap > compass",
+  clock = "minimap > clock_wnd",
+}
+
+
+-- resolve nil values in DART.MINIMAP with XML data
+function collectOptions(DXML, elements, aspectRatioInXML)
+  local options = {}
+  copy_table(options, DART.MINIMAP)
+
+  if not elements.compass or not elements.levelFrame then
+    return options
+  end
+
+  local compassSize = DXML:getElementAttr(elements.compass).width
+  local levelSize = DXML:getElementAttr(elements.levelFrame).width
+  local xlevel = DXML:getElementAttr(elements.levelFrame).x
+  local ylevel = DXML:getElementAttr(elements.levelFrame).y
+
+  if options.size == nil then
+    options.size = compassSize
+  end
+
+  if
+    options.levelProportion == nil
+    and compassSize ~= nil
+    and levelSize ~= nil
+  then
+    options.levelProportion = levelSize * DART.baseHeight / compassSize
+  end
+
+  if
+    options.padding == nil
+    and xlevel ~= nil
+    and ylevel ~= nil
+  then
+    options.padding = {
+      x = aspectRatioInXML * DART.baseHeight * (1 - xlevel / DART.aspectRatio4x3) - compassSize / 2,
+      y = DART.baseHeight - compassSize / 2 - ylevel * DART.baseHeight,
+    }
+  end
+
+  if options.clockPadding == nil and elements.clock then
+    local xclock = DXML:getElementAttr(elements.clock).x
+    local yclock = DXML:getElementAttr(elements.clock).y
+
+    if xclock and yclock then
+      options.clockPadding = {
+        x = (1 - xclock) * compassSize,
+        y = (1 - yclock) * compassSize,
+      }
+    end
+  end
+
+  return options
+end
+
+
+-- level_frame bizzarely sets the position (but not the size) of the entire
+-- minimap (even though it's not the outer element). Size and position is
+-- expressed as (n / 768) because reasons
+function adjustLevelFrame(DXML, elements, options)
+  if
+    not elements.levelFrame
+    or options.size == nil
+    or options.padding == nil
+    or options.levelProportion == nil
+  then
+    return
+  end
+
+  local size = (options.levelProportion * options.size) / DART.baseHeight
+  local xoffset = (options.size / 2 + options.padding.x) / DART.baseHeight / DART.getAspectRatio()
+  local yoffset = (options.size / 2 + options.padding.y) / DART.baseHeight
+
+  -- default to bottom right
+  local x = 1 - xoffset
+  local y = 1 - yoffset
+
+  if options.align then
+    if options.align.x == "LEFT" then
+      x = xoffset
+    elseif options.align.x == "CENTER" then
+      x = 0.5
+    end
+
+    if options.align.y == "TOP" then
+      y = yoffset
+    elseif options.align.y == "CENTER" then
+      y = 0.5
+    end
+  end
+
+  DXML:setElementAttr(elements.levelFrame, {
+    width = size,
+    height = size,
+    x = x * DART.aspectRatio4x3,
+    y = y,
+  })
+
+  if options.alpha ~= nil then
+    DXML:setElementAttr(elements.levelFrame, {a = options.alpha})
+  end
+
+  -- same result as rounded="1"
+  DXML:removeElementAttr(elements.levelFrame, {"rounded"})
+end
+
+
+function adjustBackground(DXML, elements, options)
+  if not elements.background or options.size == nil then
+    return
+  end
+
+  DXML:setElementAttr(elements.background, {
+    width = options.size / DART.baseHeight,
+    height = options.size / DART.baseHeight,
+  })
+end
+
+
+-- we abandon the "fractions of 768" measuring system starting here
+function adjustCompass(DXML, elements, options)
+  if not elements.compass then
+    return
+  end
+
+  DXML:setElementAttr(elements.compass, {x = 0.5, y = 0.5})
+
+  if options.size == nil then
+    return
+  end
+
+  DXML:setElementAttr(elements.compass, {
+    width = options.size,
+    height = options.size,
+  })
+end
+
+
+function adjustClock(DXML, elements, options)
+  if not elements.clock then
+    return
+  end
+
+  local clockWidth = DXML:getElementAttr(elements.clock).width
+  local clockHeight = DXML:getElementAttr(elements.clock).height
+
+  if clockWidth == nil or clockHeight == nil then
+    return
+  end
+
+  -- default to bottom right
+  local x = 1 - options.clockPadding.x / options.size
+  local y = 1 - options.clockPadding.y / options.size
+
+  if options.clockAlign then
+    if options.clockAlign.x == "LEFT" then
+      x = 1 - x
+    elseif options.clockAlign.x == "CENTER" then
+      x = 0.5
+    end
+
+    if options.clockAlign.y == "TOP" then
+      y = 1 - y
+    elseif options.clockAlign.y == "CENTER" then
+      y = 0.5
+    end
+  end
+
+  DXML:setElementAttr(elements.clock, {x = x, y = y})
+end
+
+
+function onReadZoneMapXML(filename, DXML)
+  local aspectRatioInXML
+
+  if filename == [[ui\zone_map_21.xml]] then
+    aspectRatioInXML = DART.aspectRatio21x9
+  elseif filename == [[ui\zone_map_16.xml]] then
+    aspectRatioInXML = DART.aspectRatio16x9
+  elseif filename == [[ui\zone_map.xml]] then
+    aspectRatioInXML = DART.aspectRatio4x3
+  end
+
+  if aspectRatioInXML == nil or DART.getAspectRatioVs16x9() <= 1 then
+    return
+  end
+
+  DART.log("MINIMAP", "Parsing " .. filename)
+
+  local elements = DART.collectElements(DXML, ELEMENT_QUERIES)
+  local options  = collectOptions(DXML, elements, aspectRatioInXML)
+
+  adjustLevelFrame(DXML, elements, options)
+  adjustBackground(DXML, elements, options)
+  adjustCompass(DXML, elements, options)
+  adjustClock(DXML, elements, options)
+end
+
+
+function on_xml_read()
+  RegisterScriptCallback("on_xml_read", onReadZoneMapXML)
+end

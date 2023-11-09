@@ -1,0 +1,201 @@
+DART.COMPANION_WHEEL = {
+  -- wheel textures and not centered properly
+  center = {x = 220, y = 232},
+  radius = nil,
+}
+
+
+ELEMENT_QUERIES = {
+  wheel = "wheel",
+  background = "wheel > background",
+  info = "info",
+  infoBackground = "info > background",
+  healthCaption = "info > health > caption",
+  weightCaption = "info > weight > caption",
+  hint = "wheel > hint",
+  icon = "info > icon",
+  name = "info > name",
+  health = "info > health",
+  healthValue = "info > health > value",
+  healthProgBack = "info > health > prog_back",
+  weight = "info > weight",
+  weightValue = "info > weight > value",
+  weightProgBack = "info > weight > prog_back",
+  boxCombat = "wheel > box_combat",
+  btnCombat = "wheel > btn_combat",
+  boxMovement = "wheel > box_movement",
+  btnMovement = "wheel > btn_movement",
+  boxStealth = "wheel > box_stealth",
+  btnStealth = "wheel > btn_stealth",
+  boxDistance = "wheel > box_distance",
+  btnDistance = "wheel > btn_distance",
+  boxTrade = "wheel > box_trade",
+  btnTrade = "wheel > btn_trade",
+  boxLoot = "wheel > box_loot",
+  btnLoot = "wheel > btn_loot",
+}
+
+
+-- resolve nil values in DART.MINIMAP with XML data
+function collectOptions(DXML, elements)
+  local options = {}
+  copy_table(options, DART.COMPANION_WHEEL)
+
+  if options.center == nil and elements.wheel then
+    local width  = DXML:getElementAttr(elements.wheel).width
+    local height = DXML:getElementAttr(elements.wheel).height
+
+    if width ~= nil and height ~= nil then
+      options.center = {x = width / 2, y = height / 2}
+    end
+  end
+
+  if options.radius == nil and elements.boxCombat then
+    local x = DXML:getElementAttr(elements.boxCombat).x
+    local y = DXML:getElementAttr(elements.boxCombat).y
+
+    if x ~= nil and y ~= nil then
+      options.radius = math.sqrt(
+        (options.center.x - x)^2 + (options.center.y - y)^2
+      )
+    end
+  end
+
+  return options
+end
+
+
+-- radially positions wheel items around the wheel
+function adjustCompanionWheel(DXML, elements, options)
+  if elements.wheel then
+    DART.changeAttributes(DXML, elements.wheel, function(attrs)
+      return {
+        width = attrs.width / DART.getAspectRatioVs4x3(),
+        x = DART.baseWidth / 2,
+        y = DART.baseHeight / 2,
+        alignment = "c",
+      }
+    end)
+  end
+
+  -- center align wheel items
+  for _, element in ipairs({
+    elements.boxCombat,
+    elements.btnCombat,
+    elements.boxMovement,
+    elements.btnMovement,
+    elements.boxStealth,
+    elements.btnStealth,
+    elements.boxDistance,
+    elements.btnDistance,
+    elements.boxTrade,
+    elements.btnTrade,
+    elements.boxLoot,
+    elements.btnLoot,
+  }) do
+    if element then
+      DXML:setElementAttr(element, {alignment = "c"})
+    end
+  end
+
+  -- adjust element widths
+  for _, element in ipairs({
+    elements.background,
+    elements.info,
+    elements.infoBackground,
+    elements.healthCaption,
+    elements.weightCaption,
+    elements.hint,
+    elements.boxCombat,
+    elements.btnCombat,
+    elements.boxMovement,
+    elements.btnMovement,
+    elements.boxStealth,
+    elements.btnStealth,
+    elements.boxDistance,
+    elements.btnDistance,
+    elements.boxTrade,
+    elements.btnTrade,
+    elements.boxLoot,
+    elements.btnLoot,
+  }) do
+    if element then
+      DART.changeAttributes(DXML, element, function(attrs)
+        return {width = attrs.width / DART.getAspectRatioVs4x3()}
+      end)
+    end
+  end
+
+  -- adjust widths and x positions
+  for _, element in ipairs({
+    elements.icon,
+    elements.name,
+    elements.health,
+    elements.healthValue,
+    elements.healthProgBack,
+    elements.weight,
+    elements.weightValue,
+    elements.weightProgBack,
+  }) do
+    if element then
+      DART.changeAttributes(DXML, element, function(attrs)
+        return {
+          width = attrs.width / DART.getAspectRatioVs4x3(),
+          x = attrs.x / DART.getAspectRatioVs4x3()
+        }
+      end)
+    end
+  end
+
+  -- position wheel items
+  DART.setRadialPosition(DXML, elements.boxCombat, 180, options.radius, options.center)
+  DART.setRadialPosition(DXML, elements.btnCombat, 180, options.radius, options.center)
+  DART.setRadialPosition(DXML, elements.boxMovement, 240, options.radius, options.center)
+  DART.setRadialPosition(DXML, elements.btnMovement, 240, options.radius, options.center)
+  DART.setRadialPosition(DXML, elements.boxStealth, 300, options.radius, options.center)
+  DART.setRadialPosition(DXML, elements.btnStealth, 300, options.radius, options.center)
+  DART.setRadialPosition(DXML, elements.boxDistance, 0, options.radius, options.center)
+  DART.setRadialPosition(DXML, elements.btnDistance, 0, options.radius, options.center)
+  DART.setRadialPosition(DXML, elements.boxTrade, 60, options.radius, options.center)
+  DART.setRadialPosition(DXML, elements.btnTrade, 60, options.radius, options.center)
+  DART.setRadialPosition(DXML, elements.boxLoot, 120, options.radius, options.center)
+  DART.setRadialPosition(DXML, elements.btnLoot, 120, options.radius, options.center)
+
+  -- center hint in wheel
+  if elements.hint then
+    DXML:setElementAttr(elements.hint, {
+      x = options.center.x / DART.getAspectRatioVs4x3(),
+      y = options.center.y,
+      alignment = "c",
+    })
+  end
+
+  -- center info box
+  if elements.info then
+    DART.changeAttributes(DXML, elements.info, function(attrs)
+      return {x = DART.baseWidth / 2,  alignment = "c"}
+    end)
+  end
+end
+
+
+function onReadUIWheelXML(filename, DXML)
+  if
+    not filename:find([[^ui\ui_wheel_companion]])
+    or DART.getAspectRatioVs16x9() <= 1
+  then
+    return
+  end
+
+  DART.log("COMPANION_WHEEL", "Parsing " .. filename)
+
+  local elements = DART.collectElements(DXML, ELEMENT_QUERIES)
+  local options  = collectOptions(DXML, elements)
+
+  adjustCompanionWheel(DXML, elements, options)
+end
+
+
+function on_xml_read()
+  RegisterScriptCallback("on_xml_read", onReadUIWheelXML)
+end
