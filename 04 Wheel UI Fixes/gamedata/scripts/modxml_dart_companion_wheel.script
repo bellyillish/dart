@@ -1,8 +1,11 @@
 DART.COMPANION_WHEEL = {
   -- wheel textures and not centered properly
-  center = {x = 220, y = 232},
-  radius = nil,
+  center = {x = 220, y = 232}
 }
+
+
+local log = DART.logger"COMPANION_WHEEL"
+local setCache, applyCache = DART.cache"COMPANION_WHEEL"
 
 
 ELEMENT_QUERIES = {
@@ -36,7 +39,7 @@ ELEMENT_QUERIES = {
 }
 
 
--- resolve nil values in DART.MINIMAP with XML data
+-- read config values from XML
 function collectOptions(DXML, elements)
   local options = {}
   copy_table(options, DART.COMPANION_WHEEL)
@@ -68,7 +71,7 @@ end
 -- radially positions wheel items around the wheel
 function adjustCompanionWheel(DXML, elements, options)
   if elements.wheel then
-    DART.changeAttributes(DXML, elements.wheel, function(attrs)
+    DART.editAttributes(DXML, elements.wheel, function(attrs)
       return {
         width = attrs.width / DART.getAspectRatioVs4x3(),
         x = DART.baseWidth / 2,
@@ -120,7 +123,7 @@ function adjustCompanionWheel(DXML, elements, options)
     elements.btnLoot,
   }) do
     if element then
-      DART.changeAttributes(DXML, element, function(attrs)
+      DART.editAttributes(DXML, element, function(attrs)
         return {width = attrs.width / DART.getAspectRatioVs4x3()}
       end)
     end
@@ -138,7 +141,7 @@ function adjustCompanionWheel(DXML, elements, options)
     elements.weightProgBack,
   }) do
     if element then
-      DART.changeAttributes(DXML, element, function(attrs)
+      DART.editAttributes(DXML, element, function(attrs)
         return {
           width = attrs.width / DART.getAspectRatioVs4x3(),
           x = attrs.x / DART.getAspectRatioVs4x3()
@@ -172,7 +175,7 @@ function adjustCompanionWheel(DXML, elements, options)
 
   -- center info box
   if elements.info then
-    DART.changeAttributes(DXML, elements.info, function(attrs)
+    DART.editAttributes(DXML, elements.info, function(attrs)
       return {x = DART.baseWidth / 2,  alignment = "c"}
     end)
   end
@@ -181,18 +184,24 @@ end
 
 function onReadUIWheelXML(filename, DXML)
   if
-    not filename:find([[^ui\ui_wheel_companion]])
+    not filename:match([[^ui\ui_wheel_companion]])
     or DART.getAspectRatioVs16x9() <= 1
   then
     return
   end
 
-  DART.log("COMPANION_WHEEL", "Parsing " .. filename)
+  if applyCache(filename, DXML) then
+    return
+  end
+
+  log("Parsing " .. filename)
 
   local elements = DART.collectElements(DXML, ELEMENT_QUERIES)
   local options  = collectOptions(DXML, elements)
 
   adjustCompanionWheel(DXML, elements, options)
+
+  setCache(filename, DXML)
 end
 
 

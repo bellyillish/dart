@@ -1,6 +1,6 @@
 -- -- desired minimap size (based on a 1024x768 screen)
--- -- e.g. 180 is ~338 on a 1440 screen (180 * 1440/768)
--- DART.MINIMAP.size = 200
+-- -- e.g. 172 is ~323 on a 1440 screen (180 * 1440/768)
+-- DART.MINIMAP.size = {x = 172, y = 172}
 
 -- -- level map alpha override
 -- DART.MINIMAP.alpha = 152
@@ -10,18 +10,21 @@
 -- DART.MINIMAP.align = {x = "RIGHT", y = "BOTTOM"}
 
 -- -- {x, y} distance from sides of screen on 1024/768
--- DART.MINIMAP.padding = {x = 16, y = 16}
+-- DART.MINIMAP.offset = {x = 16, y = 16}
 
--- -- fraction of minimap size avaiable to level map in texture
--- -- ~0.68 with default minimap textures
--- DART.MINIMAP.levelProportion = 0.68
+-- -- desired size of map inside compass
+-- -- About 0.68 * DART.MINIMAP.size with default minimap textures
+-- DART.MINIMAP.mapRatio = {x = 0.68, y = 0.68}
 
 -- -- position of clock relative to minimap
 -- -- {x = LEFT|CENTER|RIGHT, y = TOP|CENTER|BOTTOM}
 -- DART.MINIMAP.clockAlign = {x = "RIGHT", y = "BOTTOM"}
 
 -- -- {x, y} distance of clock from edges of minimap
--- DART.MINIMAP.clockPadding = {x = 20, y = 8}
+-- DART.MINIMAP.clockOffset = {x = 20, y = 8}
+
+-- -- Don't force the minimap to load use zone_map_16.xml
+-- DART.MINIMAP.disableForceZoneMap16 = false
 
 -- -- space between inventory grid items
 -- -- scaled for aspect ratio to fix base anomaly grid calculations
@@ -45,8 +48,11 @@
 -- -- faction ID patch size override (based on 1024x768)
 -- DART.PATCHES.size = 36
 
--- -- modify scale of specific scopes by texture
--- DART.SCOPES.scaleModifier = {
---   wpn_crosshair_bino = 1.333,
---   wpn_crosshair_4 = 1.112,
--- }
+-- -- {x, y} distance from sides of screen on 1024/768
+-- DART.HEALTH_HUD.offset = {x = 16, y = 16}
+
+-- -- desired scale of health HUD
+-- DART.HEALTH_HUD.scale = 1
+
+-- -- Don't force the health HUD to load and use maingame_16.xml
+-- DART.HEALTH_HUD.disableForceMaingame16 = false

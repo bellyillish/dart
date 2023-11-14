@@ -1,13 +1,11 @@
--- most XML values are based on a 1024x768 screen
+-- global constants
 baseWidth  = 1024
 baseHeight = 768
-
-aspectRatio4x3 = baseWidth / baseHeight
+aspectRatio4x3 = 4 / 3
 aspectRatio16x9 = 16 / 9
 aspectRatio21x9 = 21 / 9
-
--- for DART.log()
-enableLogging = false
+aspectRatio32x9 = 32 / 9
+enableLogging = true
 
 
 function cosd(degrees)
@@ -58,6 +56,79 @@ function getAspectRatioVs21x9()
 end
 
 
+-- create a logger for a module
+-- the generated log() accepts a limit to curb spam
+function logger(module)
+  module = (module and module ~= "DART")
+    and "DART:" .. module
+    or "DART"
+
+  local calls = {}
+
+  return function(message, limit)
+    if limit and limit > 0 then
+      if not calls[message] then
+        calls[message] = 0
+      end
+      if calls[message] >= limit then
+        return
+      end
+      calls[message] = calls[message] + 1
+    end
+
+    printf("[%s] %s", module, message)
+  end
+end
+
+
+-- render DXML to a string for debugging
+function renderDXML(DXML)
+  return slaxml.SLAXML():simple_xml(DXML.xml_table)
+end
+
+
+-- callback version of ipairs
+-- you can 'return' instead of 'goto' to continue
+-- you can 'return value' to return a new table
+-- sort of like a combo of .filter() and .map() in JS
+function ipairscb(thing, callback)
+  local results
+
+  for index, value in ipairs(thing) do
+    local rvalue = callback(value, index, thing)
+
+    if rvalue then
+      if not results then
+        results = {}
+      end
+      table.insert(results, rvalue)
+    end
+  end
+
+  return results
+end
+
+
+-- callback version of pairs
+-- you can optionally 'return key, value' to return a new table
+function pairscb(thing, callback)
+  local results
+
+  for key, value in pairs(thing) do
+    local rkey, rvalue = callback(key, value, thing)
+
+    if rkey or rvalue then
+      if not results then
+        results = {}
+      end
+      results[rkey or key] = rvalue or value
+    end
+  end
+
+  return results
+end
+
+
 -- given a table of names and query strings, creates another table
 -- of names and the first matching element
 function collectElements(DXML, queryTable)
@@ -71,30 +142,8 @@ function collectElements(DXML, queryTable)
 end
 
 
--- recursively iterates all DXML nodes with a given callback
--- (returning false will abort)
-function recurseChildren(DXML, element, callback)
-  if not element or not DXML:isElement(element) then
-    return
-  end
-
-  local continue = true
-
-  DXML:iterateChildren(element, function(child)
-    if continue then
-      continue = callback(DXML, child) ~= false
-    end
-    if continue then
-        continue = recurseChildren(DXML, child, callback) ~= false
-    end
-  end)
-
-  return continue
-end
-
-
 -- Sets element attrs with a callback that passes current attrs
-function changeAttributes(DXML, element, callback)
+function editAttributes(DXML, element, callback)
   if not element or not DXML:isElement(element) then
     return
   end
@@ -120,8 +169,109 @@ function setRadialPosition(DXML, element, angle, radius, center)
 end
 
 
-function log(module, message)
-  if enableLogging then
-    printf("[DART] %s: %s", module, message)
+-- replaces the contents of a DXML object with another XML file
+-- optionally dispatches the "on_xml_read" callback
+function replaceDXML(DXML, path, dispatch)
+  local children = {}
+
+  -- can't removeElement() directly here
+  DXML:iterateChildren(DXML:getRoot(), function(child)
+    table.insert(children, child)
+  end)
+
+  for _, child in ipairs(children) do
+    DXML:removeElement(child)
   end
+
+  DXML:insertFromXMLFile(path, nil, nil, true)
+
+  if dispatch ~= false then
+    dxml_core.xmlDispatch(path, DXML)
+  end
+end
+
+
+-- find bounding rectangle of a group of elements
+function getBoundingBox(DXML, group)
+  local bounds = {}
+
+  ipairscb(group or DXML:getRoot().kids, function(element)
+    if not DXML:isElement(element) then
+      return
+    end
+
+    local attrs = DXML:getElementAttr(element)
+
+    if
+      not attrs.x
+      or not attrs.y
+      or not attrs.width
+      or not attrs.height
+    then
+      return
+    end
+
+    local t = attrs.y
+    local l = attrs.x
+    local r = attrs.x + attrs.width
+    local b = attrs.y + attrs.height
+
+    bounds = {
+      t = math.min(bounds.t or t, t),
+      l = math.min(bounds.l or l, l),
+      r = math.max(bounds.r or r, r),
+      b = math.max(bounds.b or b, b),
+    }
+  end)
+
+  return bounds
+end
+
+
+-- merge 2 or more indexed tables
+function imerge(...)
+  local result = {}
+  local args = {...}
+  for _, arg in ipairs(args) do
+    for _, value in ipairs(arg) do
+      result[#result + 1] = value
+    end
+  end
+  return result
+end
+
+
+-- merge 2 or more keyed tables
+function merge(...)
+  local result = {}
+  local args = {...}
+  for _, arg in ipairs(args) do
+    for key, value in pairs(arg) do
+      result[key] = value
+    end
+  end
+  return result
+end
+
+
+-- create a DXML cache for a module
+function cache(module)
+  local log = logger(module)
+  local cache = {}
+
+  local function setCache(filename, DXML)
+    log("Saving " .. filename .. " to cache", 1)
+    cache[filename] = DXML.xml_table.kids
+  end
+
+  local function applyCache(filename, DXML)
+    if cache[filename] then
+      log("Reusing " .. filename .. " from cache", 1)
+      DXML.xml_table.kids = cache[filename]
+      return true
+    end
+    return false
+  end
+
+  return setCache, applyCache
 end

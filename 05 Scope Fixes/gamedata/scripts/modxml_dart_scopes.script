@@ -1,29 +1,8 @@
-DART.SCOPES = {
-  scaleModifiers = {
-    wpn_crosshair_bino = 1.333,
-    wpn_crosshair_4 = 1.112,
-  }
-}
+DART.SCOPES = {}
 
 
--- retreive a scope's scale modifier or return 1
-function getScaleModifier(DXML, elements)
-  if not elements[1] or not DXML:isElement(elements[1]) then
-    return 1
-  end
-
-  local texture = DXML:query("texture", elements[1])[1]
-  if not texture then
-    return 1
-  end
-
-  local textureName = DXML:getText(texture)
-  if not textureName then
-    return 1
-  end
-
-  return DART.SCOPES.scaleModifiers[textureName] or 1
-end
+local log = DART.logger"SCOPES"
+local setCache, applyCache = DART.cache"SCOPES"
 
 
 -- dynamically center and un-stretch scope texture
@@ -32,21 +11,20 @@ function resizeScope(DXML, scope)
   local elements = DXML:query("auto_static", scope)
 
   -- only handle scopes with 3 parts (main, left, right)
-  if
-    #elements ~= 3
-    or not elements[1]
-    or not DXML:isElement(elements[1])
-    or not elements[2]
-    or not DXML:isElement(elements[2])
-    or not elements[3]
-    or not DXML:isElement(elements[3])
-  then
+  if not elements or #elements ~= 3 then
     return
   end
 
-  local scaleModifier = getScaleModifier(DXML, elements)
+  local w1 = tonumber(DXML:getElementAttr(elements[1]).width)
+  local w2 = tonumber(DXML:getElementAttr(elements[2]).width)
+  local w3 = tonumber(DXML:getElementAttr(elements[3]).width)
 
-  local textureWidth = DART.baseWidth * scaleModifier / DART.getAspectRatioVs4x3()
+  -- skip scopes with textures in the wrong order
+  if w1 < w2 or w1 < w3 then
+    return
+  end
+
+  local textureWidth = DART.baseWidth / DART.getAspectRatioVs4x3()
   local fillerWidth  = (DART.baseWidth - textureWidth) / 2
 
   -- scope texture
@@ -70,14 +48,23 @@ end
 
 function onReadScopesXML(filename, DXML)
   if
-    not filename:find([[^ui\scopes]])
+    not filename:match([[^ui\scopes]])
     or DART.getAspectRatioVs16x9() <= 1
   then
     return
   end
 
-  DART.log("SCOPES", "Parsing " .. filename)
-  DART.recurseChildren(DXML, DXML:getRoot(), resizeScope)
+  if applyCache(filename, DXML) then
+    return
+  end
+
+  log("Parsing " .. filename)
+
+  DXML:iterateChildren(DXML:getRoot(), function(element)
+    resizeScope(DXML, element)
+  end)
+
+  setCache(filename, DXML)
 end
 
 

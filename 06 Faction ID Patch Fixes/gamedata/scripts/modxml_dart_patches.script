@@ -1,7 +1,11 @@
 DART.PATCHES = {
   -- default is a little too small
-  size = 36,
+  size = 36
 }
+
+
+local log = DART.logger"PATCHES"
+local setCache, applyCache = DART.cache"PATCHES"
 
 
 -- adjust faction ID patches
@@ -9,7 +13,7 @@ function resizePatch(DXML, element)
   if
     not element
     or not DXML:isElement(element)
-    or not DXML:getElementName(element):find([[^patch]])
+    or not DXML:getElementName(element):match([[^patch]])
   then
     return
   end
@@ -30,14 +34,23 @@ end
 
 function onReadUIPatchesXML(filename, DXML)
   if
-    not filename:find([[^ui\ui_patches]])
+    not filename:match([[^ui\ui_patches]])
     or DART.getAspectRatioVs16x9() <= 1
   then
     return
   end
 
-  DART.log("PATCHES", "Parsing " .. filename)
-  DART.recurseChildren(DXML, DXML:getRoot(), resizePatch)
+  if applyCache(filename, DXML) then
+    return
+  end
+
+  log("Parsing " .. filename)
+
+  DXML:iterateChildren(DXML:getRoot(), function(child)
+    resizePatch(DXML, child)
+  end)
+
+  setCache(filename, DXML)
 end
 
 

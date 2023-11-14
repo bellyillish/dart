@@ -1,0 +1,192 @@
+DART.HEALTH_HUD = {}
+
+
+local log = DART.logger"HEALTH_HUD"
+local setCache, applyCache = DART.cache"HEALTH_HUD"
+
+
+local HUD_BOUNDS
+
+
+function parseCustomMsgsXML(DXML)
+  -- calculate bounds of actual HUD (ignoring giant empty background)
+  local boundingElements = DART.ipairscb(DXML:getRoot().kids, function(element)
+    local name = DXML:getElementName(element)
+    if
+      name:match("^bhs_")
+      and not name:match("_43$")
+      and not name:match("_1610$")
+    then
+      return element
+    end
+  end)
+
+  HUD_BOUNDS = DART.getBoundingBox(DXML, boundingElements)
+
+  DXML:iterateChildren(DXML:getRoot(), function(child)
+    if not DXML:isElement(child) then
+      return
+    end
+
+    local name  = DXML:getElementName(child)
+    local attrs = DXML:getElementAttr(child)
+
+    if
+      not name:match("^bhs_")
+      and not name:match("^body_health_")
+      or name:match("_43$")
+      or name:match("_1610$")
+    then
+      return
+    end
+
+    local offset = DART.HEALTH_HUD.offset or {x = 16, y = 16}
+    local scale  = DART.HEALTH_HUD.scale or 1
+
+    DART.editAttributes(DXML, child, function(attrs)
+      return {
+        x = (attrs.x - HUD_BOUNDS.l + offset.x) * scale / DART.getAspectRatioVs16x9(),
+        y = DART.baseHeight - (HUD_BOUNDS.b + offset.y - attrs.y) * scale,
+        width = attrs.width * scale / DART.getAspectRatioVs16x9(),
+        height = attrs.height * scale,
+      }
+    end)
+  end)
+end
+
+
+function parseBodyHealthXML(DXML)
+  DXML:iterateChildren(DXML:getRoot(), function(child)
+    if not DXML:isElement(child) then
+      return
+    end
+
+    local name  = DXML:getElementName(child)
+    local attrs = DXML:getElementAttr(child)
+
+    if
+      not name:match("^bhs_")
+      or name:match("_43$")
+      or name:match("_1610$")
+    then
+      return
+    end
+
+    local scale = DART.HEALTH_HUD.scale or 1
+
+    DART.editAttributes(DXML, child, function(attrs)
+      return {
+        width = attrs.width * scale / DART.getAspectRatioVs16x9(),
+        height = attrs.height * scale,
+      }
+    end)
+  end)
+end
+
+
+function parseMainGameXML(DXML)
+  if not HUD_BOUNDS then
+    log("WARNING: HUD_BOUNDS is unexpectedly nil. Please report this to the mod author.")
+    return
+  end
+
+  local hudStates = DXML:query("hud_states")[1]
+
+  if not hudStates then
+    return
+  end
+
+  DXML:iterateChildren(hudStates, function(child)
+    if DXML:getElementName(child) == "progress_bar_psy" then
+      local progress = DXML:query("progress", child)[1]
+      if progress then
+        DXML:setElementAttr(progress, {stretch = 1})
+      end
+    end
+
+    local offset = DART.HEALTH_HUD.offset or {x = 16, y = 16}
+    local scale  = DART.HEALTH_HUD.scale or 1
+
+    DART.editAttributes(DXML, child, function(attrs)
+      return {
+        x = (attrs.x - HUD_BOUNDS.l + offset.x) * scale / DART.getAspectRatioVs16x9(),
+        y = DART.baseHeight - (HUD_BOUNDS.b + offset.y - attrs.y) * scale,
+        width = attrs.width * scale / DART.getAspectRatioVs16x9(),
+        height = attrs.height * scale,
+      }
+    end)
+  end)
+end
+
+
+function onReadCustomMsgsXML(filename, DXML)
+  if
+    filename ~= [[ui\ui_custom_msgs.xml]]
+    or DART.getAspectRatioVs16x9() <= 1
+  then
+    return
+  end
+
+  if applyCache(filename, DXML) then
+    return
+  end
+
+  log("Parsing " .. filename)
+
+  parseCustomMsgsXML(DXML)
+  setCache(filename, DXML)
+end
+
+
+function onReadBodyHealthXML(filename, DXML)
+  if
+    filename ~= [[ui\ui_body_health.xml]]
+    or DART.getAspectRatioVs16x9() <= 1
+  then
+    return
+  end
+
+  if applyCache(filename, DXML) then
+    return
+  end
+
+  log("Parsing " .. filename)
+
+  parseBodyHealthXML(DXML)
+  setCache(filename, DXML)
+end
+
+
+function onReadMaingameXML(filename, DXML)
+  if
+    filename ~= [[ui\maingame.xml]]
+    and filename ~= [[ui\maingame_16.xml]]
+    or DART.getAspectRatioVs16x9() <= 1
+  then
+    return
+  end
+
+  if
+    filename == [[ui\maingame.xml]]
+    and not DART.HEALTH_HUD.disableForceMaingame16
+  then
+    DART.replaceDXML(DXML, [[ui\maingame_16.xml]])
+    return
+  end
+
+  if applyCache(filename, DXML) then
+    return
+  end
+
+  log("Parsing " .. filename)
+
+  parseMainGameXML(DXML)
+  setCache(filename, DXML)
+end
+
+
+function on_xml_read()
+  RegisterScriptCallback("on_xml_read", onReadCustomMsgsXML)
+  RegisterScriptCallback("on_xml_read", onReadBodyHealthXML)
+  RegisterScriptCallback("on_xml_read", onReadMaingameXML)
+end

@@ -1,22 +1,30 @@
 DART.MARKERS = {}
 
 
-function isResizableMapSpot(DXML, element)
-  if not element or not DXML:isElement(element) then
+local log = DART.logger"MARKERS"
+local setCache, applyCache = DART.cache"MARKERS"
+
+
+local MARKER_INDEX, TOUCHED = {}, {}
+
+
+function isResizable(DXML, element)
+  if not DXML:isElement(element) then
     return false
   end
 
-  local attrs = DXML:getElementAttr(element)
-  local name  = DXML:getElementName(element)
+  local name = DXML:getElementName(element)
 
-  -- 1. It must be a valid element with a width and height
-  -- 2. It can't be a texture or minimap marker
+  if name == "texture" or name:match("^texture_") then
+    return false
+  end
+
+  local width  = DXML:getElementAttr(element).width
+  local height = DXML:getElementAttr(element).height
+
   if
-    not attrs.width or attrs.width == 0
-    or not attrs.height or attrs.height == 0
-    or name == "texture"
-    or name:find("_mini_")
-    or name:find("_mini$")
+    not width or not height
+    or width == "0" or height == "0"
   then
     return false
   end
@@ -25,13 +33,7 @@ function isResizableMapSpot(DXML, element)
 end
 
 
--- resize map markers to correct width
--- markers are counterintuitively squished instead of stretched
-function resizeMapSpot(DXML, element)
-  if not isResizableMapSpot(DXML, element) then
-    return
-  end
-
+function resizePDAMarker(DXML, element)
   local attrs = DXML:getElementAttr(element)
   local name  = DXML:getElementName(element)
 
@@ -58,8 +60,139 @@ function resizeMapSpot(DXML, element)
     DXML:setElementAttr(element, {x = attrs.x + 1})
   end
 
-  -- this specific animation screws everything up
+  -- this specific animation gets distorted
   DXML:removeElementAttr(element, {"xform_anim"})
+end
+
+
+function adjustMinimapMarker(DXML, element)
+  if not element then
+    return
+  end
+
+  DXML:iterateChildren(element, function(child)
+    if
+      not DXML:isElement(child)
+      or DXML:getElementName(child) == "texture"
+      or DXML:getElementName(child):match("^texture_")
+    then
+      return
+    end
+
+    -- only shift minimap markers (no resize)
+    DART.editAttributes(DXML, child, function(attrs)
+      local x = attrs.x / DART.getAspectRatioVs16x9()
+
+      -- Extra fudge factor for blinky things
+      if DXML:getElementName(child) == "static_border" then
+        x = x  + 1
+      end
+
+      return {x = x}
+    end)
+  end)
+end
+
+
+-- Pre-index markers for performance
+function buildMarkerIndex(DXML)
+  DXML:iterateChildren(DXML:getRoot(), function(element)
+    if not isResizable(DXML, element) then
+      return
+    end
+
+    local name = DXML:getElementName(element)
+
+    -- Delete duplicate markers from XML
+    if MARKER_INDEX[name] then
+      log("Removing duplicate marker " .. name)
+      DXML:removeElement(MARKER_INDEX[name])
+    end
+
+    MARKER_INDEX[name] = element
+  end)
+end
+
+
+function adjustPDAMarkers(DXML)
+  DART.ipairscb({"level_map", "complex_spot"}, function(query)
+    local definitions = DXML:query(query)
+
+    if not definitions then
+      return
+    end
+
+    DART.ipairscb(definitions, function(definition)
+      local miniDefinition = DXML:query("mini_map", definition.parent)[1]
+
+      DART.ipairscb({"spot", "pointer"}, function(attribute)
+        local name, miniName = DXML:getElementAttr(definition)[attribute]
+
+        if not name or not MARKER_INDEX[name] then
+         return
+        end
+
+        if miniDefinition then
+          miniName = DXML:getElementAttr(miniDefinition)[attribute]
+        end
+
+        if miniName == name then
+          miniName = miniName .. "_mini"
+
+          if not MARKER_INDEX[miniName] then
+            MARKER_INDEX[miniName] = DXML:insertElement({
+              name = miniName,
+              attr = DXML:getElementAttr(MARKER_INDEX[name]),
+              kids = MARKER_INDEX[name].kids
+            })
+          end
+
+          DXML:setElementAttr(miniDefinition, {[attribute] = miniName})
+        end
+
+        if
+          not TOUCHED[MARKER_INDEX[name]]
+          and isResizable(DXML, MARKER_INDEX[name])
+        then
+          resizePDAMarker(DXML, MARKER_INDEX[name])
+
+          DXML:iterateChildren(MARKER_INDEX[name], function(child)
+            if isResizable(DXML, child) then
+              resizePDAMarker(DXML, child)
+            end
+          end)
+
+          TOUCHED[MARKER_INDEX[name]] = true
+        end
+      end)
+    end)
+  end)
+end
+
+
+function adjustMinimapMarkers(DXML)
+  local definitions = DXML:query("mini_map")
+
+  if not definitions then
+    return
+  end
+
+  DART.ipairscb(definitions, function(definition)
+    DART.ipairscb({"spot", "pointer"}, function(attribute)
+      local name = DXML:getElementAttr(definition)[attribute]
+
+      if
+        not name
+        or not MARKER_INDEX[name]
+        or TOUCHED[MARKER_INDEX[name]]
+      then
+        return
+      end
+
+      adjustMinimapMarker(DXML, MARKER_INDEX[name])
+      TOUCHED[MARKER_INDEX[name]] = true
+    end)
+  end)
 end
 
 
@@ -72,8 +205,18 @@ function onReadMapSpotsXML(filename, DXML)
     return
   end
 
-  DART.log("MARKERS", "Parsing " .. filename)
-  DART.recurseChildren(DXML, DXML:getRoot(), resizeMapSpot)
+  if applyCache(filename, DXML) then
+    return
+  end
+
+  log("Parsing " .. filename)
+
+  buildMarkerIndex(DXML)
+  adjustPDAMarkers(DXML)
+  adjustMinimapMarkers(DXML)
+
+  setCache(filename, DXML)
+  MARKER_INDEX, TOUCHED = {}, {}
 end
 
 
