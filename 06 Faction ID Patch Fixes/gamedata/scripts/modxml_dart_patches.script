@@ -1,59 +1,69 @@
-DART.PATCHES = {
-  -- default is a little too small
-  size = 36
-}
+-- the default size is a little too small1
+DART.PATCHES = { size = 36 }
 
 
-local log = DART.logger"PATCHES"
-local setCache, applyCache = DART.cache"PATCHES"
+local path  = "ui\\ui_patches%s.xml"
+local log   = DART.createLogger("PATCHES")
+local cache = DART.createCache("PATCHES")
 
 
--- adjust faction ID patches
-function resizePatch(DXML, element)
+-- scale only faction patches, other elements in this file like
+-- 'name' and 'rank' are contolled by mcm
+function resizePatch(DXML, element, xmlAspectRatio)
+  local factor = DART.getAspectRatio() / xmlAspectRatio
+
   if
-    not element
-    or not DXML:isElement(element)
-    or not DXML:getElementName(element):match([[^patch]])
+    not DXML:isElement(element)
+    or not DXML:getElementName(element):match([[^patch_]])
   then
     return
   end
 
-  -- read size from XML if not defined in config
+  -- fallback to XML width if no config value
   local size = DART.PATCHES.size ~= nil
     and DART.PATCHES.size
     or DXML:getElementAttr(element).height
 
-  if size ~= nil then
+  if size then
     DXML:setElementAttr(element, {
-      width = size / DART.getAspectRatioVs4x3(),
+      width  = size / factor,
       height = size,
     })
   end
 end
 
 
-function onReadUIPatchesXML(filename, DXML)
-  if
-    not filename:match([[^ui\ui_patches]])
-    or DART.getAspectRatioVs16x9() <= 1
-  then
+function parseDXML(DXML, xmlAspectRatio)
+  DXML:iterateChildren(DXML:getRoot(), function(child)
+    if DXML:isElement(child) then
+      resizePatch(DXML, child, xmlAspectRatio)
+    end
+  end)
+end
+
+
+function onXMLRead(filename, DXML)
+  local postfix = DART.checkFilename(filename, path)
+
+  if not postfix then
     return
   end
 
-  if applyCache(filename, DXML) then
-    return
+  if cache.has(filename) then
+    return cache.apply(filename, DXML)
   end
 
   log("Parsing " .. filename)
 
-  DXML:iterateChildren(DXML:getRoot(), function(child)
-    resizePatch(DXML, child)
-  end)
-
-  setCache(filename, DXML)
+  parseDXML(DXML, DART.aspectRatioLookup[postfix])
+  cache.set(filename, DXML)
 end
 
 
 function on_xml_read()
-  RegisterScriptCallback("on_xml_read", onReadUIPatchesXML)
+  if DART.getAspectRatioVs16x9() > 1 then
+    RegisterScriptCallback("on_xml_read", onXMLRead)
+  else
+    log("Disabled because aspect ratio is not ultrawide")
+  end
 end

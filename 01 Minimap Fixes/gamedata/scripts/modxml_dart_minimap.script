@@ -1,35 +1,29 @@
 DART.MINIMAP = {}
 
 
-local log = DART.logger"MINIMAP"
-local setCache, applyCache = DART.cache"MINIMAP"
+local path  = "ui\\zone_map%s.xml"
+local log   = DART.createLogger("MINIMAP")
+local cache = DART.createCache("MINIMAP")
 
 
-ELEMENT_QUERIES = {
-  map = "minimap > level_frame",
-  background = "minimap > background",
-  compass = "minimap > compass",
-  clock = "minimap > clock_wnd",
-}
-
-
--- read config values from XML
-function collectSettings(DXML, elements, xmlAspectRatio)
+-- derive config setttings from XML
+function collectSettings(DXML, xmlAspectRatio)
   local settings = {}
   copy_table(settings, DART.MINIMAP)
 
-  local background, compass, clock, map =
-    elements.background,
-    elements.compass,
-    elements.clock,
-    elements.map
+  local map, background, compass, clock =
+    DXML:query("minimap > level_frame")[1],
+    DXML:query("minimap > background")[1],
+    DXML:query("minimap > compass")[1],
+    DXML:query("minimap > clock_wnd")[1]
 
-  local bgAttrs, compassAttrs, clockAttrs, mapAttrs =
+  local mapAttrs, bgAttrs, compassAttrs, clockAttrs =
+    DXML:getElementAttr(map),
     DXML:getElementAttr(background),
     DXML:getElementAttr(compass),
-    DXML:getElementAttr(clock),
-    DXML:getElementAttr(map)
+    DXML:getElementAttr(clock)
 
+  -- compass size
   if not settings.size then
     settings.size = {
       x = compassAttrs.width,
@@ -37,6 +31,7 @@ function collectSettings(DXML, elements, xmlAspectRatio)
     }
   end
 
+  -- level size
   if not settings.mapRatio then
     settings.mapRatio = {
       x = mapAttrs.width  * DART.baseHeight / compassAttrs.width,
@@ -44,6 +39,7 @@ function collectSettings(DXML, elements, xmlAspectRatio)
     }
   end
 
+  -- compass alignment
   if not settings.align then
     settings.align = {}
 
@@ -67,6 +63,7 @@ function collectSettings(DXML, elements, xmlAspectRatio)
     end
   end
 
+  -- compass offset
   if not settings.offset then
     settings.offset = {}
 
@@ -95,13 +92,14 @@ function collectSettings(DXML, elements, xmlAspectRatio)
     end
   end
 
-  -- default minimap appears to use height for both
+  -- circular minimaps don't use width
   local hbg = DART.baseHeight * bgAttrs.height
   local wbg = hbg
 
   local xclock = wbg * clockAttrs.x - (wbg - compassAttrs.width) / 2
   local yclock = hbg * clockAttrs.y - (hbg - compassAttrs.height) / 2
 
+  -- clock alignment
   if not settings.clockAlign then
     settings.clockAlign = {}
 
@@ -125,6 +123,7 @@ function collectSettings(DXML, elements, xmlAspectRatio)
     end
   end
 
+  -- clock offset
   if not settings.clockOffset then
     settings.clockOffset = {}
 
@@ -149,18 +148,22 @@ function collectSettings(DXML, elements, xmlAspectRatio)
 end
 
 
-function adjustMap(DXML, elements, settings)
-  local size, offset, mapRatio, align, alpha, map =
-    settings.size,
-    settings.offset,
-    settings.mapRatio,
-    settings.align,
-    settings.alpha,
-    elements.map
+-- the minimap doesn't stretch in ultrawide
+-- but it uses bizarre units for size and position (pixel value / 768)
+-- it also determines the {x, y} for all elements for some reason
+function adjustMap(DXML, settings)
+  local map = DXML:query("minimap > level_frame")[1]
 
   if not map then
     return
   end
+
+  local size, offset, mapRatio, align, alpha =
+    settings.size,
+    settings.offset,
+    settings.mapRatio,
+    settings.align,
+    settings.alpha
 
   local width  = settings.size.x * settings.mapRatio.x / DART.baseHeight
   local height = settings.size.y * settings.mapRatio.y / DART.baseHeight
@@ -193,10 +196,11 @@ function adjustMap(DXML, elements, settings)
 end
 
 
-function adjustCompass(DXML, elements, settings)
-  local compass, size =
-    elements.compass,
-    settings.size
+-- position is now a fraction relative to <background>
+-- and we're suddenly back to sizes in pixels
+function adjustCompass(DXML, settings)
+  local compass = DXML:query("minimap > compass")[1]
+  local size    = settings.size
 
   if compass then
     DXML:setElementAttr(compass, {width = size.x, height = size.y})
@@ -204,10 +208,16 @@ function adjustCompass(DXML, elements, settings)
 end
 
 
-function adjustClock(DXML, elements, settings)
-  local clock, background, size, clockAlign, clockOffset =
-    elements.clock,
-    elements.background,
+-- also positioned as a fraction relative to <background>
+-- background is a lot bigger than you'd think in the default circular
+-- minimap, so positions are translated to <compass> to make
+-- 'clockOffset' and 'clockAlign' more intuitive to set
+function adjustClock(DXML, settings)
+  local background, clock =
+    DXML:query("minimap > background")[1],
+    DXML:query("minimap > clock_wnd")[1]
+
+  local size, clockAlign, clockOffset =
     settings.size,
     settings.clockAlign,
     settings.clockOffset
@@ -242,49 +252,52 @@ function adjustClock(DXML, elements, settings)
 end
 
 
-function onReadZoneMapXML(filename, DXML)
-  if
-    not filename:match([[^ui\zone_map]])
-    or DART.getAspectRatioVs16x9() <= 1
-  then
-    return
-  elseif
-    filename ~= [[ui\zone_map_16.xml]]
-    and not DART.MINIMAP.disableForceZoneMap16
-  then
-    DART.replaceDXML(DXML, [[ui\zone_map_16.xml]])
+-- detect if we've been given the broken circular zone_map_21 file
+-- so we can force load zone_map_16.xml in its place -- contents are identical
+-- to a legit square minimap file, but the user can disable minimap fixes
+-- if they want to use the square minimap
+function isDefaultZoneMap(DXML)
+  local map = DXML:query("minimap > level_frame")[1]
+  return map and DXML:getElementAttr(map).rounded == "0"
+end
+
+
+function onXMLRead(filename, DXML)
+  local postfix = DART.checkFilename(filename, path)
+
+  if not postfix then
     return
   end
 
-  if applyCache(filename, DXML) then
-    return
+  -- force zone_map_16.xml
+  if postfix == "_43" then
+    log("Replacing zone_map.xml with zone_map_16.xml")
+    return DART.replaceDXML(DXML, string.format(path, "_16"))
+  elseif postfix == "_21" and isDefaultZoneMap(DXML) then
+    log("Replacing default zone_map_21.xml with zone_map_16.xml")
+    return DART.replaceDXML(DXML, string.format(path, "_16"))
   end
 
-  local xmlAspectRatio
-
-  if filename == [[ui\zone_map_21.xml]] then
-    xmlAspectRatio = DART.aspectRatio21x9
-  elseif filename == [[ui\zone_map_16.xml]] then
-    xmlAspectRatio = DART.aspectRatio16x9
-  elseif filename == [[ui\zone_map.xml]] then
-    xmlAspectRatio = DART.aspectRatio4x3
-  else
-    return
+  if cache.has(filename) then
+    return cache.apply(filename, DXML)
   end
 
   log("Parsing " .. filename)
 
-  local elements = DART.collectElements(DXML, ELEMENT_QUERIES)
-  local settings = collectSettings(DXML, elements, xmlAspectRatio)
+  local settings = collectSettings(DXML,  DART.aspectRatioLookup[postfix])
 
-  adjustMap(DXML, elements, settings)
-  adjustCompass(DXML, elements, settings)
-  adjustClock(DXML, elements, settings)
+  adjustMap(DXML, settings)
+  adjustCompass(DXML, settings)
+  adjustClock(DXML, settings)
 
-  setCache(filename, DXML)
+  cache.set(filename, DXML)
 end
 
 
 function on_xml_read()
-  RegisterScriptCallback("on_xml_read", onReadZoneMapXML)
+  if DART.getAspectRatioVs16x9() > 1 then
+    RegisterScriptCallback("on_xml_read", onXMLRead)
+  else
+    log("Disabled because aspect ratio is not ultrawide")
+  end
 end

@@ -1,27 +1,65 @@
 DART.HEALTH_HUD = {}
 
 
-local log = DART.logger"HEALTH_HUD"
-local setCache, applyCache = DART.cache"HEALTH_HUD"
+local log   = DART.createLogger("HEALTH_HUD")
+local cache = DART.createCache("HEALTH_HUD")
 
+local customMsgsPath = "ui\\ui_custom_msgs%s.xml"
+local bodyHealthPath = "ui\\ui_body_health%s.xml"
+local maingamePath   = "ui\\maingame%s.xml"
+local sidHudPath     = "ui\\ui_sidhud_component%s.xml"
 
 local HUD_BOUNDS
 
 
-function parseCustomMsgsXML(DXML)
-  -- calculate bounds of actual HUD (ignoring giant empty background)
-  local boundingElements = DART.ipairscb(DXML:getRoot().kids, function(element)
-    local name = DXML:getElementName(element)
+-- the HUD background is huge and skews the 'offset' and 'scale' settings
+-- so the actual bounds is calculated using visible HUD elements  and
+-- shared with the other parsers
+function getHudBounds(DXML)
+  -- filter only the elements we care about
+  local bounds = DART.ipairscb(DXML:getRoot().kids, function(child)
+    local name = DXML:getElementName(child)
     if
       name:match("^bhs_")
       and not name:match("_43$")
       and not name:match("_1610$")
     then
-      return element
+      return child
     end
   end)
 
-  HUD_BOUNDS = DART.getBoundingBox(DXML, boundingElements)
+  HUD_BOUNDS = DART.getBoundingBox(DXML, bounds)
+end
+
+
+-- evaluate settings based on HUD_BOUNDS
+function collectSettings()
+  local settings = {}
+  copy_table(settings, DART.HEALTH_HUD)
+
+  if not settings.offset then
+    settings.offset = {
+      x = HUD_BOUNDS.l,
+      y = HUD_BOUNDS.b - DART.baseHeight,
+    }
+  end
+
+  if not settings.scale then
+    settings.scale = 1
+  end
+
+  return settings
+end
+
+
+function parseDXMLCustomMsgs(DXML, xmlAspectRatio)
+  local factor   = DART.getAspectRatio() / xmlAspectRatio
+  local settings = collectSettings()
+
+  local offset, scale, baseHeight =
+    settings.offset,
+    settings.scale,
+    DART.baseHeight
 
   DXML:iterateChildren(DXML:getRoot(), function(child)
     if not DXML:isElement(child) then
@@ -40,14 +78,11 @@ function parseCustomMsgsXML(DXML)
       return
     end
 
-    local offset = DART.HEALTH_HUD.offset or {x = 16, y = 16}
-    local scale  = DART.HEALTH_HUD.scale or 1
-
     DART.editAttributes(DXML, child, function(attrs)
       return {
-        x = (attrs.x - HUD_BOUNDS.l + offset.x) * scale / DART.getAspectRatioVs16x9(),
-        y = DART.baseHeight - (HUD_BOUNDS.b + offset.y - attrs.y) * scale,
-        width = attrs.width * scale / DART.getAspectRatioVs16x9(),
+        x = (offset.x + scale * (attrs.x - HUD_BOUNDS.l)) / factor,
+        y = baseHeight + offset.y - scale * (HUD_BOUNDS.b - attrs.y),
+        width  = attrs.width * scale / factor,
         height = attrs.height * scale,
       }
     end)
@@ -55,7 +90,10 @@ function parseCustomMsgsXML(DXML)
 end
 
 
-function parseBodyHealthXML(DXML)
+function parseDXMLBodyHealth(DXML, xmlAspectRatio)
+  local factor = DART.getAspectRatio() / xmlAspectRatio
+  local scale  = collectSettings().scale
+
   DXML:iterateChildren(DXML:getRoot(), function(child)
     if not DXML:isElement(child) then
       return
@@ -72,11 +110,9 @@ function parseBodyHealthXML(DXML)
       return
     end
 
-    local scale = DART.HEALTH_HUD.scale or 1
-
     DART.editAttributes(DXML, child, function(attrs)
       return {
-        width = attrs.width * scale / DART.getAspectRatioVs16x9(),
+        width  = attrs.width * scale / factor,
         height = attrs.height * scale,
       }
     end)
@@ -84,11 +120,14 @@ function parseBodyHealthXML(DXML)
 end
 
 
-function parseMainGameXML(DXML)
-  if not HUD_BOUNDS then
-    log("WARNING: HUD_BOUNDS is unexpectedly nil. Please report this to the mod author.")
-    return
-  end
+function parseDXMLMaingame(DXML, xmlAspectRatio)
+  local factor   = DART.getAspectRatio() / xmlAspectRatio
+  local settings = collectSettings()
+
+  local offset, scale, baseHeight =
+    settings.offset,
+    settings.scale,
+    DART.baseHeight
 
   local hudStates = DXML:query("hud_states")[1]
 
@@ -97,6 +136,7 @@ function parseMainGameXML(DXML)
   end
 
   DXML:iterateChildren(hudStates, function(child)
+    -- set the psybar to stetch
     if DXML:getElementName(child) == "progress_bar_psy" then
       local progress = DXML:query("progress", child)[1]
       if progress then
@@ -104,14 +144,11 @@ function parseMainGameXML(DXML)
       end
     end
 
-    local offset = DART.HEALTH_HUD.offset or {x = 16, y = 16}
-    local scale  = DART.HEALTH_HUD.scale or 1
-
     DART.editAttributes(DXML, child, function(attrs)
       return {
-        x = (attrs.x - HUD_BOUNDS.l + offset.x) * scale / DART.getAspectRatioVs16x9(),
-        y = DART.baseHeight - (HUD_BOUNDS.b + offset.y - attrs.y) * scale,
-        width = attrs.width * scale / DART.getAspectRatioVs16x9(),
+        x = (offset.x + scale * (attrs.x - HUD_BOUNDS.l)) / factor,
+        y = baseHeight + offset.y - scale * (HUD_BOUNDS.b - attrs.y),
+        width  = attrs.width * scale / factor,
         height = attrs.height * scale,
       }
     end)
@@ -119,74 +156,194 @@ function parseMainGameXML(DXML)
 end
 
 
-function onReadCustomMsgsXML(filename, DXML)
-  if
-    filename ~= [[ui\ui_custom_msgs.xml]]
-    or DART.getAspectRatioVs16x9() <= 1
-  then
+-- the radbar behaves bizarrely when moved or resized
+-- so we have to tweak some XML values
+function parseDXMLSidHud(DXML, xmlAspectRatio)
+  local factor   = DART.getAspectRatio() / xmlAspectRatio
+  local settings = collectSettings()
+
+  local offset, scale, baseHeight =
+    settings.offset,
+    settings.scale,
+    DART.baseHeight
+
+  local sidhud    = DXML:query("sidhud")[1]
+  local radHealth = DXML:query("sidhud > rad_health")[1]
+  local value     = DXML:query("sidhud > rad_health > value")[1]
+
+  if not (sidhud and radHealth and value) then
     return
   end
 
-  if applyCache(filename, DXML) then
-    return
-  end
+  DART.editAttributes(DXML, radHealth, function(attrs)
+    -- move sidhud's 'y' value to radHealth
+    attrs.y = attrs.y + (DXML:getElementAttr(sidhud).y or 0)
 
-  log("Parsing " .. filename)
+    -- tweaks to look better
+    if attrs.x == "13" then
+      attrs.x = attrs.x + 1
+    end
+    if attrs.height == "2" then
+      attrs.height = attrs.height + 1
+    end
 
-  parseCustomMsgsXML(DXML)
-  setCache(filename, DXML)
+    return attrs
+  end)
+
+  DXML:setElementAttr(sidhud, {y = 0})
+
+  DART.editAttributes(DXML, value, function(attrs)
+    attrs.x = 0
+
+    -- tweaks to look better
+    if attrs.width == "70" then
+      attrs.width = attrs.width + 1
+    end
+    if attrs.height == "2" then
+      attrs.height = attrs.height + 1
+    end
+
+    return attrs
+  end)
+
+  DART.editAttributes(DXML, radHealth, function(attrs)
+    return {
+      x = (offset.x + scale * (attrs.x - HUD_BOUNDS.l)) / factor,
+      y = baseHeight + offset.y - scale * (HUD_BOUNDS.b - attrs.y),
+      width  = attrs.width * scale / factor,
+      height = attrs.height * scale,
+    }
+  end)
+
+  DART.editAttributes(DXML, value, function(attrs)
+    return {
+      width  = attrs.width * scale / factor,
+      height = attrs.height * scale,
+    }
+  end)
 end
 
 
-function onReadBodyHealthXML(filename, DXML)
-  if
-    filename ~= [[ui\ui_body_health.xml]]
-    or DART.getAspectRatioVs16x9() <= 1
-  then
+function onXMLReadCustomMsgs(filename, DXML)
+  local postfix = DART.checkFilename(filename, customMsgsPath)
+
+  if not postfix then
     return
   end
 
-  if applyCache(filename, DXML) then
-    return
+  if cache.has(filename) then
+    return cache.apply(filename, DXML)
+  end
+
+  -- ui_custom_msgs.xml is actually 16:9
+  if postfix == "_43" then
+    postfix = "_16"
   end
 
   log("Parsing " .. filename)
 
-  parseBodyHealthXML(DXML)
-  setCache(filename, DXML)
+  -- calculate HUD_BOUNDS first
+  if not HUD_BOUNDS then
+    getHudBounds(DXML)
+  end
+
+  parseDXMLCustomMsgs(DXML, DART.aspectRatioLookup[postfix])
+  cache.set(filename, DXML)
 end
 
 
-function onReadMaingameXML(filename, DXML)
-  if
-    filename ~= [[ui\maingame.xml]]
-    and filename ~= [[ui\maingame_16.xml]]
-    or DART.getAspectRatioVs16x9() <= 1
-  then
+function onXMLReadBodyHealth(filename, DXML)
+  local postfix = DART.checkFilename(filename, bodyHealthPath)
+
+  if not postfix then
     return
   end
 
-  if
-    filename == [[ui\maingame.xml]]
-    and not DART.HEALTH_HUD.disableForceMaingame16
-  then
-    DART.replaceDXML(DXML, [[ui\maingame_16.xml]])
-    return
+  if cache.has(filename) then
+    return cache.apply(filename, DXML)
   end
 
-  if applyCache(filename, DXML) then
-    return
+  -- ui_body_health.xml is actually 16:9
+  if postfix == "_43" then
+    postfix = "_16"
+  end
+
+  -- force HUD_BOUNDS to be calculated
+  if not HUD_BOUNDS then
+    CScriptXmlInit():ParseFile("ui_custom_msgs.xml")
   end
 
   log("Parsing " .. filename)
 
-  parseMainGameXML(DXML)
-  setCache(filename, DXML)
+  parseDXMLBodyHealth(DXML, DART.aspectRatioLookup[postfix])
+  cache.set(filename, DXML)
+end
+
+
+function onXMLReadMaingame(filename, DXML)
+  local postfix = DART.checkFilename(filename, maingamePath)
+
+  if not postfix then
+    return
+  end
+
+  -- force maingame_16.xml
+  if postfix == "_43" then
+    log("Replacing maingame.xml with maingame_16.xml")
+    return DART.replaceDXML(DXML, string.format(maingamePath, "_16"))
+  end
+
+  if cache.has(filename) then
+    return cache.apply(filename, DXML)
+  end
+
+  -- force HUD_BOUNDS to be calculated
+  if not HUD_BOUNDS then
+    CScriptXmlInit():ParseFile("ui_custom_msgs.xml")
+  end
+
+  log("Parsing " .. filename)
+
+  parseDXMLMaingame(DXML, DART.aspectRatioLookup[postfix])
+  cache.set(filename, DXML)
+end
+
+
+function onXMLReadSidHud(filename, DXML)
+  local postfix = DART.checkFilename(filename, sidHudPath)
+
+  if not postfix then
+    return
+  end
+
+  if cache.has(filename) then
+    return cache.apply(filename, DXML)
+  end
+
+  -- ui_body_health.xml is actually 16:9
+  if postfix == "_43" then
+    postfix = "_16"
+  end
+
+  -- force HUD_BOUNDS to be calculated
+  if not HUD_BOUNDS then
+    CScriptXmlInit():ParseFile("ui_custom_msgs.xml")
+  end
+
+  log("Parsing " .. filename)
+
+  parseDXMLSidHud(DXML, DART.aspectRatioLookup[postfix])
+  cache.set(filename, DXML)
 end
 
 
 function on_xml_read()
-  RegisterScriptCallback("on_xml_read", onReadCustomMsgsXML)
-  RegisterScriptCallback("on_xml_read", onReadBodyHealthXML)
-  RegisterScriptCallback("on_xml_read", onReadMaingameXML)
+  if DART.getAspectRatioVs16x9() > 1 then
+    RegisterScriptCallback("on_xml_read", onXMLReadCustomMsgs)
+    RegisterScriptCallback("on_xml_read", onXMLReadBodyHealth)
+    RegisterScriptCallback("on_xml_read", onXMLReadMaingame)
+    RegisterScriptCallback("on_xml_read", onXMLReadSidHud)
+  else
+    log("Disabled because aspect ratio is not ultrawide")
+  end
 end

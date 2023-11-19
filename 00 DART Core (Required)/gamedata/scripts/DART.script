@@ -8,6 +8,14 @@ aspectRatio32x9 = 32 / 9
 enableLogging = true
 
 
+aspectRatioLookup = {
+  _43 = DART.aspectRatio4x3,
+  _16 = DART.aspectRatio16x9,
+  _21 = DART.aspectRatio21x9,
+  _32 = DART.aspectRatio32x9,
+}
+
+
 function cosd(degrees)
   return math.cos(math.rad(degrees))
 end
@@ -40,25 +48,25 @@ end
 
 function getAspectRatioVs4x3()
   local ratio = getAspectRatio() / DART.aspectRatio4x3
-  return ratio > 1 and ratio or 1
+  return ratio - 0.01 > 1 and ratio or 1
 end
 
 
 function getAspectRatioVs16x9()
   local ratio = getAspectRatio() / DART.aspectRatio16x9
-  return ratio > 1 and ratio or 1
+  return ratio - 0.01 > 1 and ratio or 1
 end
 
 
 function getAspectRatioVs21x9()
   local ratio = getAspectRatio() / DART.aspectRatio21x9
-  return ratio > 1 and ratio or 1
+  return ratio - 0.01 > 1 and ratio or 1
 end
 
 
 -- create a logger for a module
 -- the generated log() accepts a limit to curb spam
-function logger(module)
+function createLogger(module)
   module = (module and module ~= "DART")
     and "DART:" .. module
     or "DART"
@@ -78,12 +86,6 @@ function logger(module)
 
     printf("[%s] %s", module, message)
   end
-end
-
-
--- render DXML to a string for debugging
-function renderDXML(DXML)
-  return slaxml.SLAXML():simple_xml(DXML.xml_table)
 end
 
 
@@ -129,19 +131,6 @@ function pairscb(thing, callback)
 end
 
 
--- given a table of names and query strings, creates another table
--- of names and the first matching element
-function collectElements(DXML, queryTable)
-  local elements = {}
-
-  for key, value in pairs(queryTable) do
-    elements[key] = DXML:query(value)[1]
-  end
-
-  return elements
-end
-
-
 -- Sets element attrs with a callback that passes current attrs
 function editAttributes(DXML, element, callback)
   if not element or not DXML:isElement(element) then
@@ -151,21 +140,6 @@ function editAttributes(DXML, element, callback)
   DXML:setElementAttr(element, callback(
     DXML:getElementAttr(element) or {}
   ))
-end
-
-
--- position an element radially from a given center {x, y}, radius, and angle
-function setRadialPosition(DXML, element, angle, radius, center)
-  if not element or not DXML:isElement(element) then
-    return
-  end
-
-  center = center or {x = 0, y = 0}
-
-  DXML:setElementAttr(element, {
-    x = (center.x + radius * cosd(angle)) / getAspectRatioVs4x3(),
-    y = center.y + radius * sind(angle),
-  })
 end
 
 
@@ -254,24 +228,49 @@ function merge(...)
 end
 
 
--- create a DXML cache for a module
-function cache(module)
-  local log = logger(module)
+-- create a cache object for module
+function createCache(module)
+  local log = createLogger(module)
   local cache = {}
 
-  local function setCache(filename, DXML)
+  local function has(filename)
+    return cache[filename] ~= nil
+  end
+
+  local function set(filename, DXML)
     log("Saving " .. filename .. " to cache", 1)
     cache[filename] = DXML.xml_table.kids
   end
 
-  local function applyCache(filename, DXML)
-    if cache[filename] then
-      log("Reusing " .. filename .. " from cache", 1)
-      DXML.xml_table.kids = cache[filename]
-      return true
-    end
-    return false
+  local function apply(filename, DXML)
+    log("Applying cache to " .. filename, 1)
+    DXML.xml_table.kids = cache[filename]
   end
 
-  return setCache, applyCache
+  return {has = has, set = set, apply = apply}
+end
+
+
+-- ensure match and extract aspect ratio postfix
+function checkFilename(filename, filepath)
+  local pattern = string.format(filepath, "(_?%d?%d?)")
+  local postfix = filename:match(pattern)
+
+  return postfix
+    and (aspectRatioLookup[postfix] ~= nil and postfix or "_43")
+    or nil
+end
+
+
+-- create a reusable function for basic scaling
+function createScaleFunction(DXML, scaleFactor)
+  return function(element, ...)
+    local args = {...}
+    DART.editAttributes(DXML, element, function(attrs)
+      for _, attr in ipairs(args) do
+        attrs[attr] = attrs[attr] / scaleFactor
+      end
+      return attrs
+    end)
+  end
 end

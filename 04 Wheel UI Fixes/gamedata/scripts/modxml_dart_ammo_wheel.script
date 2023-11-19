@@ -1,141 +1,113 @@
-DART.AMMO_WHEEL = {
-  -- wheel textures are not properly centered
-  center = {x = 220, y = 232}
-}
+DART.AMMO_WHEEL = {}
 
 
-local log = DART.logger"AMMO_WHEEL"
-local setCache, applyCache = DART.cache"AMMO_WHEEL"
+local path  = "ui\\ui_wheel_ammo%s.xml"
+local log   = DART.createLogger("AMMO_WHEEL")
+local cache = DART.createCache("AMMO_WHEEL")
 
 
-ELEMENT_QUERIES = {
-  wheel = "wheel",
-  background = "wheel > background",
-  result = "wheel > result",
-  btn = "ammo > btn",
-  icon = "ammo > icon",
-  num = "ammo > num",
-  text = "ammo > text",
-  rtext = "ammo > text_r",
-  highlight = "ammo > highlight",
-  box1 = "wheel > alt > box_1",
-  box4 = "wheel > alt > box_4",
-  box7 = "wheel > alt > box_7",
-}
+-- the wheels are easy to handle, every element just needs their
+-- 'x' and 'width' scaled for aspect ratio, <wheel> is the only
+-- exception since it needs to be centered
+function parseDXML(DXML, xmlAspectRatio)
+  local factor = DART.getAspectRatio() / xmlAspectRatio
+  local scale  = DART.createScaleFunction(DXML, factor)
 
+  local wheel, background, texture, all, alt, extended, result, ammo =
+    DXML:query("wheel")[1],
+    DXML:query("wheel > background")[1],
+    DXML:query("wheel > background > texture")[1],
+    DXML:query("wheel > all")[1],
+    DXML:query("wheel > alt")[1],
+    DXML:query("wheel > extended")[1],
+    DXML:query("wheel > result")[1],
+    DXML:query("ammo")[1]
 
--- read config values from XML
-function collectOptions(DXML, elements)
-  local options = {}
-  copy_table(options, DART.AMMO_WHEEL)
-
-  if options.center == nil and elements.wheel then
-    local width  = DXML:getElementAttr(elements.wheel).width
-    local height = DXML:getElementAttr(elements.wheel).height
-
-    if width ~= nil and height ~= nil then
-      options.center = {x = width / 2, y = height / 2}
-    end
-  end
-
-  if options.radius == nil and elements.box1 then
-    local x = DXML:getElementAttr(elements.box1).x
-    local y = DXML:getElementAttr(elements.box1).y
-
-    if x ~= nil and y ~= nil then
-      options.radius = math.sqrt(
-        (options.center.x - x)^2 + (options.center.y - y)^2
-      )
-    end
-  end
-
-  return options
-end
-
-
--- radially positions wheel items around the wheel
-function adjustWheel(DXML, elements, options)
-  if elements.wheel then
-    DART.editAttributes(DXML, elements.wheel, function(attrs)
+  -- keep wheel centered after resize
+  if wheel then
+    DART.editAttributes(DXML, wheel, function(attrs)
+      local newWidth = attrs.width / factor
       return {
-        width = attrs.width / DART.getAspectRatioVs4x3(),
-        x = DART.baseWidth / 2,
-        y = DART.baseHeight / 2,
-        alignment = "c",
+        width = newWidth,
+        x = attrs.x + (attrs.width - newWidth) / 2
       }
     end)
   end
 
-  -- adjust element widths
-  for _, element in ipairs({
-    elements.background,
-    elements.result,
-    elements.btn,
-    elements.icon,
-    elements.num,
-    elements.text,
-    elements.rtext,
-    elements.highlight,
-    elements.box1,
-    elements.box4,
-    elements.box7,
-  }) do
-    if element then
-      DART.editAttributes(DXML, element, function(attrs)
-        return {width = attrs.width / DART.getAspectRatioVs4x3()}
-      end)
-    end
+  if background then
+    scale(background, "width", "x")
   end
 
-  -- center align all wheel items
-  for _, element in ipairs({
-    elements.box1,
-    elements.box4,
-    elements.box7,
-  }) do
-    if element then
-      DXML:setElementAttr(element, {alignment = "c"})
-    end
+  if extended then
+    scale(extended, "width", "x")
   end
 
-  -- position wheel items
-  DART.setRadialPosition(DXML, elements.box1, 210, options.radius, options.center)
-  DART.setRadialPosition(DXML, elements.box4, 330, options.radius, options.center)
-  DART.setRadialPosition(DXML, elements.box7, 90, options.radius, options.center)
+  if result then
+    scale(result, "width", "x")
+  end
 
-  -- center result in wheel
-  if elements.result then
-    DXML:setElementAttr(elements.result, {
-      x = options.center.x / DART.getAspectRatioVs4x3(),
-      y = options.center.y,
-      alignment = "c",
-    })
+  -- set round wheel texture
+  if texture and DART.AMMO_WHEEL.useRoundWheel then
+    DXML:setText(texture, "ui_hud2_wheel_companion")
+  end
+
+  -- icons inside <all>
+  if all then
+    DXML:iterateChildren(all, function(child)
+      if DXML:isElement(child) then
+        scale(child, "width", "x")
+      end
+    end)
+  end
+
+  -- icons inside <alt>
+  if alt then
+    DXML:iterateChildren(alt, function(child)
+      if DXML:isElement(child) then
+        scale(child, "width", "x")
+      end
+    end)
+  end
+
+  -- ammo box details
+  if ammo then
+    DXML:iterateChildren(ammo, function(child)
+      if DXML:isElement(child) then
+        scale(child, "width", "x")
+      end
+    end)
   end
 end
 
 
-function onReadUIWheelXML(filename, DXML)
-  if
-    not filename:match([[^ui\ui_wheel_ammo]])
-    or DART.getAspectRatioVs16x9() <= 1
-  then
+function onXMLRead(filename, DXML)
+  local postfix = DART.checkFilename(filename, path)
+
+  if not postfix then
     return
   end
 
-  if applyCache(filename, DXML) then
-    return
+  -- force ui_wheel_ammo_16.xml
+  if postfix == "_43" then
+    log("Replacing ui_wheel_ammo.xml with ui_wheel_ammo_16.xml")
+    return DART.replaceDXML(DXML, string.format(path, "_16"))
+  end
+
+  if cache.has(filename) then
+    return cache.apply(filename, DXML)
   end
 
   log("Parsing " .. filename)
 
-  local elements = DART.collectElements(DXML, ELEMENT_QUERIES)
-  local options  = collectOptions(DXML, elements)
-  adjustWheel(DXML, elements, options)
-
-  setCache(filename, DXML)
+  parseDXML(DXML, DART.aspectRatioLookup[postfix])
+  cache.set(filename, DXML)
 end
 
 
 function on_xml_read()
-  RegisterScriptCallback("on_xml_read", onReadUIWheelXML)
+  if DART.getAspectRatioVs16x9() > 1 then
+    RegisterScriptCallback("on_xml_read", onXMLRead)
+  else
+    log("Disabled because aspect ratio is not ultrawide")
+  end
 end

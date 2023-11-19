@@ -23,9 +23,6 @@
 -- -- {x, y} distance of clock from edges of minimap
 -- DART.MINIMAP.clockOffset = {x = 20, y = 8}
 
--- -- Don't force the minimap to load use zone_map_16.xml
--- DART.MINIMAP.disableForceZoneMap16 = false
-
 -- -- space between inventory grid items
 -- -- scaled for aspect ratio to fix base anomaly grid calculations
 -- DART.INVENTORY.gridLine = 2
@@ -33,26 +30,14 @@
 -- -- size of each inventory grid item (based on 1024x768)
 -- DART.INVENTORY.gridSize = 41
 
--- -- from wheel center to item center
--- DART.AMMO_WHEEL.radius = 131
-
--- -- because ammo wheel textures are not properly centered
--- DART.AMMO_WHEEL.center = {x = 220, y = 232}
-
--- -- from wheel center to item center
--- DART.COMPANION_WHEEL.radius = 131
-
--- -- because wheel textures are not properly centered
--- DART.COMPANION_WHEEL.center = {x = 220, y = 232}
+-- Relpace the triangular wheel with the round one
+-- DART.AMMO_WHEEL.useRoundWheel = true
 
 -- -- faction ID patch size override (based on 1024x768)
 -- DART.PATCHES.size = 36
 
 -- -- {x, y} distance from sides of screen on 1024/768
--- DART.HEALTH_HUD.offset = {x = 16, y = 16}
+-- DART.HEALTH_HUD.offset = {x = 15, y = 12}
 
--- -- desired scale of health HUD
+-- -- desired scale of HUD
 -- DART.HEALTH_HUD.scale = 1
-
--- -- Don't force the health HUD to load and use maingame_16.xml
--- DART.HEALTH_HUD.disableForceMaingame16 = false

@@ -1,12 +1,15 @@
 DART.SCOPES = {}
 
 
-local log = DART.logger"SCOPES"
-local setCache, applyCache = DART.cache"SCOPES"
+local path  = "ui\\scopes%s.xml"
+local log   = DART.createLogger("SCOPES")
+local cache = DART.createCache("SCOPES")
 
 
--- dynamically center and un-stretch scope texture
--- dynamically adjust left and right sides to fill remaining space
+-- we're not as concerned about xmlAspectRatio here because all known
+-- scopes are 1024x768, so we can just scale 1024 to the aspect ratio
+-- it's actually better than relying on widths in the XML because those
+-- are sloppy and all over the place
 function resizeScope(DXML, scope)
   local elements = DXML:query("auto_static", scope)
 
@@ -46,28 +49,37 @@ function resizeScope(DXML, scope)
 end
 
 
-function onReadScopesXML(filename, DXML)
-  if
-    not filename:match([[^ui\scopes]])
-    or DART.getAspectRatioVs16x9() <= 1
-  then
+function parseDXML(DXML)
+  DXML:iterateChildren(DXML:getRoot(), function(child)
+    if DXML:isElement(child) then
+      resizeScope(DXML, child)
+    end
+  end)
+end
+
+
+function onXMLRead(filename, DXML)
+  local postfix = DART.checkFilename(filename, path)
+
+  if not postfix then
     return
   end
 
-  if applyCache(filename, DXML) then
-    return
+  if cache.has(filename) then
+    return cache.apply(filename, DXML)
   end
 
   log("Parsing " .. filename)
 
-  DXML:iterateChildren(DXML:getRoot(), function(element)
-    resizeScope(DXML, element)
-  end)
-
-  setCache(filename, DXML)
+  parseDXML(DXML)
+  cache.set(filename, DXML)
 end
 
 
 function on_xml_read()
-  RegisterScriptCallback("on_xml_read", onReadScopesXML)
+  if DART.getAspectRatioVs16x9() > 1 then
+    RegisterScriptCallback("on_xml_read", onXMLRead)
+  else
+    log("Disabled because aspect ratio is not ultrawide")
+  end
 end
