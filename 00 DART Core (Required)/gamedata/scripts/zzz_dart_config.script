@@ -34,10 +34,13 @@
 -- DART.AMMO_WHEEL.useRoundWheel = true
 
 -- -- faction ID patch size override (based on 1024x768)
--- DART.PATCHES.size = 36
+-- DART.PATCHES.size = 36 
 
 -- -- {x, y} distance from sides of screen on 1024/768
 -- DART.HEALTH_HUD.offset = {x = 15, y = 12}
 
 -- -- desired scale of HUD
 -- DART.HEALTH_HUD.scale = 1
+
+-- The distance from either side of the screen to not place HUD elements
+-- DART.HUD_SAFE_ZONE = 200
