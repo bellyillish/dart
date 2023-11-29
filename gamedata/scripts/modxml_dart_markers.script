@@ -130,7 +130,6 @@ function parseMinimapMarkers(DXML, xmlAspectRatio)
   if not definitions then
     return
   end
-
   DART.ipairscb(definitions, function(definition)
     DART.ipairscb({"spot", "pointer"}, function(attribute)
       local name = DXML:getElementAttr(definition)[attribute]
@@ -159,7 +158,11 @@ function adjustPDAMarker(DXML, element, xmlAspectRatio)
   local attrs = DXML:getElementAttr(element)
   local name  = DXML:getElementName(element)
 
+  log("name " .. name)
+  
+
   local angle = attrs.heading_angle or 0
+  log("angle " .. angle)
   local widthChange  = attrs.width
   local heightChange = attrs.height
 

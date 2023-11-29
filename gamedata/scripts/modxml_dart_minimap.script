@@ -174,7 +174,7 @@ function adjustMap(DXML, settings)
   if align.x == "CENTER" then
     x = DART.aspectRatio4x3 / 2 + offset.x / DART.baseHeight / DART.getAspectRatioVs4x3()
   elseif align.x == "RIGHT" then
-    x = DART.aspectRatio4x3 - (size.x / 2 - offset.x) / DART.baseHeight / DART.getAspectRatioVs4x3()
+    x = (DART.aspectRatio4x3 - (size.x / 2 - offset.x) / DART.baseHeight / DART.getAspectRatioVs4x3()) - (DART.HUD_SAFE_ZONE / 768)
   end
 
   if align.y == "CENTER" then

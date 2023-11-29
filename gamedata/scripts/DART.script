@@ -7,6 +7,11 @@ aspectRatio21x9 = 21 / 9
 aspectRatio32x9 = 32 / 9
 enableLogging = true
 
+-- shared globals
+DART.HUD_SAFE_ZONE = 0
+DART.hud_health_system_y = 0
+DART.alticons_x = 0
+
 
 aspectRatioLookup = {
   _43 = DART.aspectRatio4x3,
