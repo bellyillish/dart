@@ -1,0 +1,60 @@
+local log   = DART.createLogger("NEWS")
+local cache = DART.createCache("NEWS")
+
+function parseDXMLNews(DXML)
+    DXML:iterateChildren(DXML:getRoot(), function(child)
+      if not DXML:isElement(child) then
+        return
+      end
+  
+      local factor = 11
+      local name  = DXML:getElementName(child)
+      local attrs = DXML:getElementAttr(child)
+  
+      -- log("DXML MATCH " .. name)
+      -- log("DXML ATTRS " .. attrs.x .. " " .. attrs.y .. " " .. attrs.width .. " " .. attrs.height)
+      -- log("New y " .. attrs.y - DART.hud_health_system_y)
+
+      DART.editAttributes(DXML, child, function(attrs)
+        local y = DART.hud_health_system_y + (factor * DART.getAspectRatio() * DART.HEALTH_HUD.scale)
+        if child.name == "icon_static" then
+          return {
+            x = attrs.x + DART.HUD_SAFE_ZONE,
+            y = attrs.y - y,
+            width = attrs.height
+          }
+        else
+          return {
+            x = attrs.x + DART.HUD_SAFE_ZONE,
+            y = attrs.y - y
+          }
+        end
+      end)
+    end)
+  end
+
+
+function on_xml_read()
+    if DART.getAspectRatioVs16x9() > 1 then
+      RegisterScriptCallback("on_xml_read", onXMLReadNews)
+    else
+      log("Disabled because aspect ratio is not ultrawide")
+    end
+end
+  
+function onXMLReadNews(filename, DXML)
+    local postfix = DART.checkFilename(filename, "ui\\maingame_pda_msg.xml")
+
+    if not postfix then
+        return
+    end
+    
+    if cache.has(filename) then
+        return cache.apply(filename, DXML)
+    end
+
+
+    log("Start News fixes" .. filename)
+    parseDXMLNews(DXML)
+    cache.set(filename, DXML)
+end

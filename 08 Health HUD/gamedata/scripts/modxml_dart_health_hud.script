@@ -43,7 +43,7 @@ function collectSettings()
       y = HUD_BOUNDS.b - DART.baseHeight,
     }
   end
-
+  
   if not settings.scale then
     settings.scale = 1
   end
@@ -68,7 +68,7 @@ function parseDXMLCustomMsgs(DXML, xmlAspectRatio)
 
     local name  = DXML:getElementName(child)
     local attrs = DXML:getElementAttr(child)
-
+    
     if
       not name:match("^bhs_")
       and not name:match("^body_health_")
@@ -78,9 +78,22 @@ function parseDXMLCustomMsgs(DXML, xmlAspectRatio)
       return
     end
 
+    -- Save BHS parent container y position for fixing news positioning in modxml_dart_news
+    if name ~= "body_health_system" then
+      local hud_health_system_offset = baseHeight + offset.y - 1 * (HUD_BOUNDS.b - attrs.y)
+      DART.hud_health_system_y = hud_health_system_offset - (baseHeight + offset.y - scale * (HUD_BOUNDS.b - attrs.y))
+      -- log("hud_health_system_offset " .. hud_health_system_offset)
+      -- log("hud_health_system_y " .. DART.hud_health_system_y)
+    end
+
     DART.editAttributes(DXML, child, function(attrs)
+      -- log("findme")
+      -- log("x = " .. (offset.x + scale * (attrs.x - HUD_BOUNDS.l)) / factor)
+      -- log("y = " .. baseHeight + offset.y - scale * (HUD_BOUNDS.b - attrs.y))
+      -- log("width = " .. attrs.width * scale / factor)
+      -- log("height = " .. attrs.height * scale)
       return {
-        x = (offset.x + scale * (attrs.x - HUD_BOUNDS.l)) / factor,
+        x = ((offset.x + scale * (attrs.x - HUD_BOUNDS.l)) / factor) + DART.HUD_SAFE_ZONE,
         y = baseHeight + offset.y - scale * (HUD_BOUNDS.b - attrs.y),
         width  = attrs.width * scale / factor,
         height = attrs.height * scale,
@@ -113,7 +126,7 @@ function parseDXMLBodyHealth(DXML, xmlAspectRatio)
     DART.editAttributes(DXML, child, function(attrs)
       return {
         width  = attrs.width * scale / factor,
-        height = attrs.height * scale,
+        height = attrs.height * scale
       }
     end)
   end)
@@ -146,7 +159,7 @@ function parseDXMLMaingame(DXML, xmlAspectRatio)
 
     DART.editAttributes(DXML, child, function(attrs)
       return {
-        x = (offset.x + scale * (attrs.x - HUD_BOUNDS.l)) / factor,
+        x = ((offset.x + scale * (attrs.x - HUD_BOUNDS.l)) / factor) + DART.HUD_SAFE_ZONE,
         y = baseHeight + offset.y - scale * (HUD_BOUNDS.b - attrs.y),
         width  = attrs.width * scale / factor,
         height = attrs.height * scale,
@@ -208,7 +221,7 @@ function parseDXMLSidHud(DXML, xmlAspectRatio)
 
   DART.editAttributes(DXML, radHealth, function(attrs)
     return {
-      x = (offset.x + scale * (attrs.x - HUD_BOUNDS.l)) / factor,
+      x = ((offset.x + scale * (attrs.x - HUD_BOUNDS.l)) / factor) + DART.HUD_SAFE_ZONE,
       y = baseHeight + offset.y - scale * (HUD_BOUNDS.b - attrs.y),
       width  = attrs.width * scale / factor,
       height = attrs.height * scale,
@@ -241,7 +254,7 @@ function onXMLReadCustomMsgs(filename, DXML)
   end
 
   log("Parsing " .. filename)
-
+  
   -- calculate HUD_BOUNDS first
   if not HUD_BOUNDS then
     getHudBounds(DXML)
