@@ -51,8 +51,6 @@ jobs:
         cp gamedata/scripts/z_alticons.script "10 Indicator Fixes (aliticons)/gamedata/scripts"
 
         rm -rf gamedata
-
-        cat ${{ github.event.release.upload_url }}
         
 
     - name: Archive files
