@@ -15,17 +15,17 @@ jobs:
 
     - name: Create folders and copy files
       run: |
-        mkdir -p "00 DART Core (Required)"
-        mkdir -p "01 Minimap Fixes"
-        mkdir -p "02 Map Marker Fixes"
-        mkdir -p "03 Inventory Fixes"
-        mkdir -p "04 Wheel UI Fixes"
-        mkdir -p "05 Scope Fixes"
-        mkdir -p "06 Faction ID Patch Fixes"
-        mkdir -p "07 Mask Tweaks (from GIRTH)"
-        mkdir -p "08 Health HUD"
-        mkdir -p "09 News Fixes"
-        mkdir -p "10 Indicator Fixes (aliticons)"
+        mkdir -p "00 DART Core (Required)/gamedata"
+        mkdir -p "01 Minimap Fixes/gamedata"
+        mkdir -p "02 Map Marker Fixes/gamedata"
+        mkdir -p "03 Inventory Fixes/gamedata"
+        mkdir -p "04 Wheel UI Fixes/gamedata"
+        mkdir -p "05 Scope Fixes/gamedata"
+        mkdir -p "06 Faction ID Patch Fixes/gamedata"
+        mkdir -p "07 Mask Tweaks (from GIRTH)/gamedata"
+        mkdir -p "08 Health HUD/gamedata"
+        mkdir -p "09 News Fixes/gamedata"
+        mkdir -p "10 Indicator Fixes (aliticons)/gamedata"
 
         cp -R gamedata/scripts/DART.script gamedata/scripts/zzz_dart_config.script "00 DART Core (Required)/gamedata/"
         cp -R gamedata/scripts/modxml_dart_minimap.script "01 Minimap Fixes/gamedata/"
