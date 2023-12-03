@@ -81,5 +81,6 @@ jobs:
         asset_path: ./release.7z
         asset_name: ${{ github.event.release.name }}.7z
         asset_content_type: application/x-7z-compressed
+        overwrite: true
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
