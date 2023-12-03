@@ -37,7 +37,7 @@ jobs:
         cp -R gamedata/shaders/r3/gasmask* "07 Mask Tweaks (from GIRTH)/gamedata/"
         cp -R gamedata/scripts/modxml_dart_health_hud.script "08 Health HUD/gamedata/"
         cp -R gamedata/configs/ui/maingame_pda_msg* gamedata/scripts/modxml_dart_news.script "09 News Fixes/gamedata/"
-        cp -R gamedata/scripts/z_aliticons.script "10 Indicator Fixes (aliticons)/gamedata/"
+        cp -R gamedata/scripts/z_alticons.script "10 Indicator Fixes (aliticons)/gamedata/"
         
 
     - name: Archive files
