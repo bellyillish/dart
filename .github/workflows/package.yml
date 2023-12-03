@@ -54,16 +54,20 @@ jobs:
       run: |
         7z a -r release.7z gamedata
 
-    - name: Create Release
+    - uses: ncipollo/release-action@v1.12.0
       id: create_release
-      uses: actions/create-release@v1
-      with:
-        tag_name: v${{ github.run_number }}
-        release_name: Release ${{ github.run_number }}
-        draft: false
-        prerelease: false
       env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # - name: Create Release
+    #   id: create_release
+    #   uses: actions/create-release@v1
+    #   with:
+    #     tag_name: v${{ github.run_number }}
+    #     release_name: Dynamic_Aspect_Ratio_Tweaks-${{ github.run_number }}
+    #     draft: false
+    #     prerelease: false
+    #   env:
+    #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload Artifact
       id: upload-release-asset
