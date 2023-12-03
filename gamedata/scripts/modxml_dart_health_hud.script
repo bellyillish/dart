@@ -1,6 +1,5 @@
 DART.HEALTH_HUD = {}
 
-
 local log   = DART.createLogger("HEALTH_HUD")
 local cache = DART.createCache("HEALTH_HUD")
 
@@ -27,10 +26,10 @@ function getHudBounds(DXML)
       return child
     end
   end)
+  print_r(bounds)
 
   HUD_BOUNDS = DART.getBoundingBox(DXML, bounds)
 end
-
 
 -- evaluate settings based on HUD_BOUNDS
 function collectSettings()
@@ -45,7 +44,7 @@ function collectSettings()
   end
   
   if not settings.scale then
-    settings.scale = 1
+    settings.scale = DART.scale
   end
 
   return settings
@@ -68,7 +67,7 @@ function parseDXMLCustomMsgs(DXML, xmlAspectRatio)
 
     local name  = DXML:getElementName(child)
     local attrs = DXML:getElementAttr(child)
-    
+    -- log("Iter " .. name)
     if
       not name:match("^bhs_")
       and not name:match("^body_health_")
@@ -254,7 +253,8 @@ function onXMLReadCustomMsgs(filename, DXML)
   end
 
   log("Parsing " .. filename)
-  
+  log("Postfix " .. postfix)
+
   -- calculate HUD_BOUNDS first
   if not HUD_BOUNDS then
     getHudBounds(DXML)
