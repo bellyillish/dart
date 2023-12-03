@@ -16,7 +16,7 @@ function parseDXMLNews(DXML)
       -- log("New y " .. attrs.y - DART.hud_health_system_y)
 
       DART.editAttributes(DXML, child, function(attrs)
-        local y = DART.hud_health_system_y + (factor * DART.getAspectRatio() * DART.HEALTH_HUD.scale)
+        local y = DART.hud_health_system_y + (factor * DART.getAspectRatio() * (DART.HEALTH_HUD.scale or 1))
         if child.name == "icon_static" then
           return {
             x = attrs.x + DART.HUD_SAFE_ZONE,

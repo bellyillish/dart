@@ -44,7 +44,7 @@ function collectSettings()
   end
   
   if not settings.scale then
-    settings.scale = DART.scale
+    settings.scale = DART.scale or 1
   end
 
   return settings
