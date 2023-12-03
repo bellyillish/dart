@@ -41,11 +41,13 @@ jobs:
         cp gamedata/textures/wpn/wpn_crosshair_bino.dds "05 Scope Fixes/gamedata/textures/wpn"
         cp gamedata/scripts/factionID_hud_mcm.script "06 Faction ID Patch Fixes/gamedata/scripts"
         cp gamedata/scripts/modxml_dart_patches.script "06 Faction ID Patch Fixes/gamedata/scripts"
-        cp gamedata/shaders/r3/gasmask* "07 Mask Tweaks (from GIRTH)/gamedata/scripts"
+        cp gamedata/shaders/r3/gasmask* "07 Mask Tweaks (from GIRTH)/gamedata/shaders/r3"
         cp gamedata/scripts/modxml_dart_health_hud.script "08 Health HUD/gamedata/scripts"
-        cp gamedata/configs/ui/maingame_pda_msg* "09 News Fixes/gamedata/scripts"
+        cp gamedata/configs/ui/maingame_pda_msg* "09 News Fixes/gamedata/configs/ui"
         cp gamedata/scripts/modxml_dart_news.script "09 News Fixes/gamedata/scripts"
         cp gamedata/scripts/z_alticons.script "10 Indicator Fixes (aliticons)/gamedata/scripts"
+
+        rm -rf gamedata
         
 
     - name: Archive files
