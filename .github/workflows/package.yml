@@ -2,6 +2,7 @@ name: Package BAIN Installer
 
 on:
   release:
+    types: [published]
     branches:
       - main
     tags:
