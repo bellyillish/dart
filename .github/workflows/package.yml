@@ -1,0 +1,86 @@
+name: Package BAIN Installer
+
+on:
+  release:
+    types: [published]
+    branches:
+      - main
+    tags:
+      - "v*"
+
+jobs:
+  package:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Create folders and copy files
+      run: |
+        mkdir -p "00 DART Core (Required)/gamedata/scripts"
+        mkdir -p "01 Minimap Fixes/gamedata/scripts"
+        mkdir -p "02 Map Marker Fixes/gamedata/scripts"
+        mkdir -p "03 Inventory Fixes/gamedata/scripts"
+        mkdir -p "04 Wheel UI Fixes/gamedata/scripts"
+        mkdir -p "05 Scope Fixes/gamedata/scripts"
+        mkdir -p "05 Scope Fixes/gamedata/textures/wpn"
+        mkdir -p "06 Faction ID Patch Fixes/gamedata/scripts"
+        mkdir -p "07 Mask Tweaks (from GIRTH)/gamedata/scripts"
+        mkdir -p "07 Mask Tweaks (from GIRTH)/gamedata/shaders/r3"
+        mkdir -p "08 Health HUD/gamedata/scripts"
+        mkdir -p "09 News Fixes/gamedata/configs/ui"
+        mkdir -p "09 News Fixes/gamedata/scripts"
+        mkdir -p "10 Indicator Fixes (aliticons)/gamedata/scripts"
+
+        cp gamedata/scripts/DART.script "00 DART Core (Required)/gamedata/scripts"
+        cp gamedata/scripts/zzz_dart_config.script "00 DART Core (Required)/gamedata/scripts"
+        cp gamedata/scripts/modxml_dart_minimap.script "01 Minimap Fixes/gamedata/scripts"
+        cp gamedata/scripts/modxml_dart_markers.script "02 Map Marker Fixes/gamedata/scripts"
+        cp gamedata/scripts/z_dart_inventory.script "03 Inventory Fixes/gamedata/scripts"
+        cp gamedata/scripts/modxml_dart_ammo_wheel.script "04 Wheel UI Fixes/gamedata/scripts"
+        cp gamedata/scripts/modxml_dart_companion_wheel.script "04 Wheel UI Fixes/gamedata/scripts"
+        cp gamedata/scripts/modxml_dart_scopes.script "05 Scope Fixes/gamedata/scripts"
+        cp gamedata/textures/wpn/wpn_crosshair_bino.dds "05 Scope Fixes/gamedata/textures/wpn"
+        cp gamedata/scripts/factionID_hud_mcm.script "06 Faction ID Patch Fixes/gamedata/scripts"
+        cp gamedata/scripts/modxml_dart_patches.script "06 Faction ID Patch Fixes/gamedata/scripts"
+        cp gamedata/shaders/r3/gasmask* "07 Mask Tweaks (from GIRTH)/gamedata/shaders/r3"
+        cp gamedata/scripts/modxml_dart_health_hud.script "08 Health HUD/gamedata/scripts"
+        cp gamedata/configs/ui/maingame_pda_msg* "09 News Fixes/gamedata/configs/ui"
+        cp gamedata/scripts/modxml_dart_news.script "09 News Fixes/gamedata/scripts"
+        cp gamedata/scripts/z_alticons.script "10 Indicator Fixes (aliticons)/gamedata/scripts"
+
+        rm -rf gamedata
+        
+
+    - name: Archive files
+      run: |
+        7z a -r release.7z gamedata
+
+    # - uses: ncipollo/release-action@v1.12.0
+    #   id: create_release
+    #   env:
+    #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # - name: Create Release
+    #   id: create_release
+    #   uses: actions/create-release@v1
+    #   with:
+    #     tag_name: v${{ github.run_number }}
+    #     release_name: Dynamic_Aspect_Ratio_Tweaks-${{ github.run_number }}
+    #     draft: false
+    #     prerelease: false
+    #   env:
+    #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Artifact
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./release.7z
+        asset_name: ${{ github.event.release.name }}.7z
+        asset_content_type: application/x-7z-compressed
+        overwrite: true
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
