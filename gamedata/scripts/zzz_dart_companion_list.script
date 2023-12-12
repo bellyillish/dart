@@ -1,0 +1,27 @@
+local Module = dart_module
+
+
+local mod = "COMPANION_LIST"
+local log = Module.createLogger(mod)
+
+
+if Module.isDisabled(mod) then
+  log("Disabled, skipping UICompanionList:InitControls()")
+else
+  log("Monkey patching UICompanionList:InitControls()")
+
+  local InitControls = axr_companions.UICompanionList.InitControls
+
+
+  -- utils_xml.correct_ratio() seems to do more harm than good in general, but
+  -- here it's also not consistently implemented, making it damn near impossible
+  -- to do what we need, disabling it makes things so much easier
+  function axr_companions.UICompanionList:InitControls()
+    local correctRatio = utils_xml.correct_ratio
+    utils_xml.correct_ratio = function() end
+
+    InitControls(self)
+
+    utils_xml.correct_ratio = correctRatio
+  end
+end

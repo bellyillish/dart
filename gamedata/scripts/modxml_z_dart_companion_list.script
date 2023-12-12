@@ -1,0 +1,81 @@
+local Dart   = Dart_core
+local Module = dart_module
+local Utils  = dart_module
+
+
+local mod    = "COMPANION_LIST"
+local config = Dart.config.companionList
+
+
+-- convoluted process per axr_companions
+function getBounds(DXML)
+  local magicCount   = 8
+  local magicPadding = 10
+
+  local list   = DXML:query("companion_list")[1]
+  local health = DXML:query("companion_list > slot > health")[1]
+  local bg     = DXML:query("companion_list > slot > background")[1]
+
+  local xlist, ylist =
+    DXML:safeGetAttrs(list).x,
+    DXML:safeGetAttrs(list).y
+
+  local xhealth, whealth =
+    DXML:safeGetAttrs(health).x,
+    DXML:safeGetAttrs(health).width
+
+  local xbg, wbg, hbg =
+    DXML:safeGetAttrs(bg).x,
+    DXML:safeGetAttrs(bg).width,
+    DXML:safeGetAttrs(bg).height
+
+  return {
+    l = xlist,
+    t = ylist,
+    r = xlist + math.max(xhealth + whealth, xbg + wbg),
+    b = ylist + magicCount * (hbg + magicPadding)
+  }
+end
+
+
+function parseUIHud(DXML)
+  local list     = DXML:query("companion_list")[1]
+  local slot     = DXML:query("companion_list > slot")[1]
+  local healthBg = DXML:query("companion_list > slot > health > background")[1]
+
+  local bounds = getBounds(DXML)
+
+  -- fixes being partly offscreen in base GAMMA
+  if bounds.r > Dart.baseWidth then
+    DXML:safeSetAttrs(list, function(attrs)
+      return {x = attrs.x + Dart.baseWidth - bounds.r}
+    end)
+  end
+
+  local outerSettings = {
+    bounds    = getBounds(DXML),
+    offset    = config.offset,
+    anchor    = config.anchor,
+    scale     = config.scale,
+    autoscale = config.autoscale,
+    safezone  = config.safezone
+  }
+
+  local innerSettings = {
+    scale     = config.scale,
+    autoscale = config.autoscale
+  }
+
+  DXML:scaleElement(list, outerSettings)
+  DXML:scaleElement(slot, innerSettings)
+  DXML:scaleElement(healthBg, innerSettings)
+
+  DXML:safeIterate(slot, function(child)
+    DXML:scaleElement(child, innerSettings)
+  end)
+end
+
+
+function on_xml_read()
+  Module.registerModule(mod, "ui\\ui_hud", parseUIHud)
+end

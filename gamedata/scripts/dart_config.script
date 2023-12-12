@@ -1,0 +1,73 @@
+local Dart = Dart_core
+
+-- To change a setting, uncomment it by removing the dashes (--) and then
+-- set the desired value. Also see dart_core.script for less common settings.
+--
+-- Set a module to 'true' to disable it
+-- Dart.config.disabledModules.AMMO_WHEEL      = false
+-- Dart.config.disabledModules.BHS             = false
+-- Dart.config.disabledModules.COMPANION_LIST  = false
+-- Dart.config.disabledModules.COMPANION_WHEEL = false
+-- Dart.config.disabledModules.INVENTORY       = false
+-- Dart.config.disabledModules.MESSAGES        = false
+-- Dart.config.disabledModules.MINIMAP         = false
+-- Dart.config.disabledModules.PATCHES         = false
+-- Dart.config.disabledModules.SCOPES          = false
+-- Dart.config.disabledModules.STATUS_ICONS    = false
+--
+-- Move HUD items closer to the center of the screen
+Dart.config.safezone = 400
+--
+-- Explanation of shared settings below:
+--   - offset: moves the item by {x, y} pixels
+--   - autoscale: makes an item smaller as the resolution gets larger
+--     (this is vanilla behavior for a few items like the companion list)
+--   - scale: ratio to scale an item larger or smaller
+-- Item-specific settings are noted below:
+--
+-- BHS
+-- Dart.config.bhs.offset = {400, 0}
+-- Dart.config.bhs.autoscale = false
+-- Dart.config.bhs.scale = 1
+--
+-- MINIMAP
+-- Dart.config.minimap.offset = {0, 0}
+-- Dart.config.minimap.autoscale = false
+-- Dart.config.minimap.scale = 1
+-- Dart.config.minimap.alpha = nil  -- transparency of minimap (0-255)
+-- Dart.config.minimap.clockOffset = {0, 0}  -- moves the clock by {x, y} pixels
+--
+-- COMPANION_LIST
+-- Dart.config.companionList.offset = {-12, -80}
+-- Dart.config.companionList.autoscale = true
+-- Dart.config.companionList.scale = 1
+--
+-- STATUS_ICONS
+-- Dart.config.statusIcons.offset = {-4, -8}
+-- Dart.config.statusIcons.autoscale = false
+-- Dart.config.statusIcons.scale = 0.75
+--
+-- MESSAGES
+-- Dart.config.messages.offset = {0, -12}
+-- Dart.config.messages.autoscale = false
+-- Dart.config.messages.scale = 1
+--
+-- PATCHES
+-- Dart.config.patches.offset = {12, 0}
+-- Dart.config.patches.autoscale = false
+-- Dart.config.patches.scale = 1.25
+--
+-- AMMO_WHEEL
+-- Dart.config.ammoWheel.offset = {0, 0}
+-- Dart.config.ammoWheel.autoscale  = false
+-- Dart.config.ammoWheel.scale = 1
+-- Dart.config.ammoWheel.roundWheel = true  -- Replaces the triangular wheel with the round one
+--
+-- COMPANION_WHEEL
+-- Dart.config.companionWheel.offset = {0, 0}
+-- Dart.config.companionWheel.autoscale = false
+-- Dart.config.companionWheel.scale = 1
+--
+-- INVENTORY_ICONS
+-- Dart.config.inventory.autoscale = false
+-- Dart.config.inventory.scale = 0.85

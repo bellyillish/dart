@@ -1,0 +1,35 @@
+local Dart   = Dart_core
+local Module = dart_module
+
+
+local mod    = "STATUS_ICONS"
+local config = Dart.config.statusIcons
+
+
+function parseUIHud(DXML)
+  local indicators = DXML:query("indicators")[1]
+  if not indicators then
+    return
+  end
+
+  DXML:scaleElement(indicators, {
+    bounds    = DXML:getElementBounds(indicators),
+    safezone  = config.safezone,
+    anchor    = config.anchor,
+    offset    = config.offset,
+    scale     = config.scale,
+    autoscale = config.autoscale,
+  })
+
+  DXML:safeIterate(indicators, function(child)
+    DXML:scaleElement(child, {
+      scale     = config.scale,
+      autoscale = config.autoscale,
+    })
+  end)
+end
+
+
+function on_xml_read()
+  Module.registerModule(mod, "ui\\ui_hud", parseUIHud)
+end

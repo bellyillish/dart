@@ -1,0 +1,60 @@
+local Dart   = Dart_core
+local Module = dart_module
+local Utils  = dart_utils
+
+
+local mod    = "SCOPES"
+local config = Dart.config.scopes
+
+
+-- we're not as concerned about xmlAspectRatio here because all known
+-- scopes are 1024x768, so we can just scale 1024 to the aspect ratio
+-- it's actually better than relying on widths in the XML because those
+-- are sloppy and all over the place
+function resizeScope(DXML, scope)
+  local elements = DXML:query("auto_static", scope)
+
+  -- only handle scopes with 3 parts (main, left, right)
+  if not elements or #elements ~= 3 then
+    return
+  end
+
+  local w1 = tonumber(DXML:safeGetAttrs(elements[1]).width)
+  local w2 = tonumber(DXML:safeGetAttrs(elements[2]).width)
+  local w3 = tonumber(DXML:safeGetAttrs(elements[3]).width)
+
+  -- skip scopes with textures in the wrong order
+  if w1 < w2 or w1 < w3 then
+    return
+  end
+
+  local textureWidth = Utils.scaleW(Dart.baseWidth, Dart.ratio4x3)
+  local fillerWidth  = (Dart.baseWidth - textureWidth) / 2
+
+  DXML:safeSetAttrs(elements[1], {
+    x     = fillerWidth,
+    width = textureWidth,
+  })
+
+  DXML:safeSetAttrs(elements[2], {
+    x     = 0,
+    width = fillerWidth
+  })
+
+  DXML:safeSetAttrs(elements[3], {
+    x     = fillerWidth + textureWidth,
+    width = fillerWidth,
+  })
+end
+
+
+function parseScopes(DXML)
+  DXML:safeIterate(function(child)
+    resizeScope(DXML, child)
+  end)
+end
+
+
+function on_xml_read()
+  Module.registerModule(mod, "ui\\scopes", parseScopes)
+end

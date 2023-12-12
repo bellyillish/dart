@@ -1,0 +1,16 @@
+local Dart   = Dart_core
+local Module = dart_module
+
+
+local mod    = "INVENTORY"
+local config = Dart.config.inventory
+
+
+function parseUIInventory(DXML)
+  Dart.state.inventoryAspectRatio = DXML.aspectRatio
+end
+
+
+function on_xml_read()
+  Module.registerModule(mod, "ui\\ui_inventory", parseUIInventory)
+end

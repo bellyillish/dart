@@ -1,0 +1,293 @@
+local Dart = Dart_core
+
+
+function isUsing3DPDA()
+  return get_console_cmd(1, "g_3d_pda")
+end
+
+
+function cosd(degrees)
+  return math.cos(math.rad(degrees))
+end
+
+
+function sind(degrees)
+  return math.sin(math.rad(degrees))
+end
+
+
+function abcosd(degrees)
+  return math.abs(cosd(degrees))
+end
+
+
+function absind(degrees)
+  return math.abs(sind(degrees))
+end
+
+
+function getAspectRatio()
+  return device().width / device().height
+end
+
+
+function getAspectRatioVs(otherRatio)
+  return math.max(getAspectRatio() / otherRatio - 0.01, 1)
+end
+
+
+-- callback version of ipairs
+  --  `return [nil]` acts like filter()
+  --  `return [value]` acts like map()
+function ipairscb(thing, callback)
+  local results
+
+  for index, value in ipairs(thing) do
+    local rvalue = callback(value, index, thing)
+
+    if rvalue then
+      if not results then
+        results = {}
+      end
+      table.insert(results, rvalue)
+    end
+  end
+
+  return results
+end
+
+
+-- callback version of pairs
+  -- `return [nil]` acts like filter()
+  -- `return [key], [value]` maps to new key and value
+function pairscb(thing, callback)
+  local results
+
+  for key, value in pairs(thing) do
+    local rkey, rvalue = callback(key, value, thing)
+
+    if rkey ~= nil and rvalue ~= nil then
+      if not results then
+        results = {}
+      end
+      results[rkey] = rvalue
+    end
+  end
+
+  return results
+end
+
+-- merge [n] number of indexed tables
+function imerge(...)
+  local args   = {...}
+  local result = {}
+
+  for _, arg in ipairs(args) do
+    for _, value in ipairs(arg) do
+      result[#result + 1] = value
+    end
+  end
+
+  return result
+end
+
+
+-- merge [n] number of keyed tables
+function merge(...)
+  local args   = {...}
+  local result = {}
+
+  for _, arg in ipairs(args) do
+    for key, value in pairs(arg) do
+      result[key] = value
+    end
+  end
+
+  return result
+end
+
+
+-- reset and flag invalid numeric attributes
+function sanitizeAttrs(attrs)
+  local toSanitize = {"x", "y", "width", "height"}
+  local errors     = {}
+
+  for _, name in ipairs(toSanitize) do
+    if attrs[name] and not tonumber(attrs[name]) then
+      errors[name] = attrs[name]
+      attrs[name]  = nil
+    end
+  end
+
+  return attrs, #errors == 0 and nil or errors
+end
+
+
+-- find {l, r, t, b} bounds of [n] attributes
+function getBounds(...)
+  local args   = {...}
+  local bounds = {}
+
+  ipairscb(args, function(attrs)
+    if not attrs.x or not attrs.y or not attrs.width or not attrs.height then
+      return
+    end
+
+    local t = attrs.y
+    local l = attrs.x
+    local r = attrs.x + attrs.width
+    local b = attrs.y + attrs.height
+
+    bounds = {
+      t = math.min(bounds.t or t, t),
+      l = math.min(bounds.l or l, l),
+      r = math.max(bounds.r or r, r),
+      b = math.max(bounds.b or b, b),
+    }
+  end)
+
+  return bounds
+end
+
+
+-- combine given scale with autoscale
+function addAutoscale(scale)
+  return (scale or 1) * Dart.baseHeight / device().height
+end
+
+
+-- scale {x, y, width, height} to current aspect ratio
+function scaleAttrs(attrs, targetRatio, settings)
+  settings    = merge(Dart.defaultScaleSettings, settings)
+  local ratio = getAspectRatioVs(targetRatio)
+
+  local anchor, align, bounds, scale, autoscale, offset, safezone =
+    settings.anchor,
+    settings.align,
+    settings.bounds,
+    settings.scale,
+    settings.autoscale,
+    settings.offset,
+    settings.safezone
+
+  local x, y, width, height =
+    tonumber(attrs.x),
+    tonumber(attrs.y),
+    tonumber(attrs.width),
+    tonumber(attrs.height)
+
+  local l, t, r, b =
+    bounds.l,
+    bounds.t,
+    bounds.r,
+    bounds.b
+
+  local anchor1, anchor2 = anchor[1], anchor[2]
+
+  -- move the element if settings.align is specified
+  if x and align and align[1] ~= anchor1 then
+    if align[1] == "CENTER" then
+      l = Dart.baseWidth / 2 - (r - l) / 2
+      r = Dart.baseWidth / 2 + (r - l) / 2
+      x = x + (l - bounds.l)
+    else
+      l = Dart.baseWidth - r
+      r = Dart.baseWidth - l
+      x = x + (l - bounds.l)
+    end
+
+    anchor1 = align[1]
+  end
+
+  if attrs.y and align and align[2] ~= anchor2 then
+    if align[2] == "CENTER" then
+      t = Dart.baseHeight / 2 - (b - t) / 2
+      b = Dart.baseHeight / 2 + (b - t) / 2
+      y = y + (t - bounds.t)
+    else
+      t = Dart.baseHeight - t
+      b = Dart.baseHeight - b
+      y = y + (t - bounds.t)
+    end
+
+    anchor2 = align[2]
+  end
+
+  local xscreen = ({
+    LEFT   = 0,
+    CENTER = Dart.baseWidth / 2,
+    RIGHT  = Dart.baseWidth,
+  })[anchor1]
+
+  local xanchor = ({
+    LEFT   = xscreen + (l - xscreen) / ratio,
+    CENTER = xscreen + ((l + r) / 2 - xscreen) / ratio,
+    RIGHT  = xscreen + (r - xscreen) / ratio,
+  })[anchor1]
+
+  local yanchor = ({
+    TOP    = t,
+    CENTER = (t + b) / 2,
+    BOTTOM = b,
+  })[anchor2]
+
+  local xoffset, yoffset = offset[1], offset[2]
+
+  if safezone then
+    xoffset = xoffset + ({
+      LEFT   = Dart.config.safezone,
+      CENTER = 0,
+      RIGHT  = -Dart.config.safezone,
+    })[anchor1]
+  end
+
+  if autoscale then
+    scale = addAutoscale(scale)
+  end
+
+  if x then
+    x = xscreen + (x - xscreen) / ratio
+    x = xanchor + (x - xanchor) * scale
+    x = x + xoffset / ratio / (targetRatio / Dart.ratio4x3)
+  end
+
+  if y then
+    y = yanchor + (y - yanchor) * scale
+    y = y + yoffset
+  end
+
+  if width then
+    width = width * scale / ratio
+  end
+
+  if height then
+    height = height * scale
+  end
+
+  return {
+    x = x,
+    y = y,
+    width = width,
+    height = height,
+  }
+end
+
+
+function scaleX(x, targetRatio, settings)
+  return scaleAttrs({x = x}, targetRatio, settings).x
+end
+
+
+function scaleY(y, targetRatio, settings)
+  return scaleAttrs({y = y}, targetRatio, settings).y
+end
+
+
+function scaleW(w, targetRatio, settings)
+  return scaleAttrs({width = w}, targetRatio, settings).width
+end
+
+
+function scaleH(h, targetRatio, settings)
+  return scaleAttrs({height = h}, targetRatio, settings).height
+end
