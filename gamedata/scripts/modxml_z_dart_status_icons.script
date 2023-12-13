@@ -1,4 +1,5 @@
 local Dart   = Dart_core
+local Utils  = Dart_utils
 local Module = dart_module
 
 
@@ -26,6 +27,11 @@ function parseUIHud(DXML)
       scale     = config.scale,
       autoscale = config.autoscale,
     })
+
+    -- hack for UI mods that pass ui_hud_16 or ui_hud_21
+    DXML:safeSetAttrs(child, function(attrs)
+      return {width = attrs.width / (DXML.aspectRatio / Dart.ratio4x3)}
+    end)
   end)
 end
 

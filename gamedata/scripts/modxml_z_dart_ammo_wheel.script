@@ -46,7 +46,10 @@ function parseUIWheelAmmo(DXML)
     DXML:scaleElement(result, itemSettings)
   end
 
-  if texture and config.roundWheel then
+  if
+    texture and config.roundWheel
+    and DXML:getText(texture) == "ui_hud2_wheel_ammo"
+  then
     DXML:setText(texture, "ui_hud2_wheel_companion")
   end
 
