@@ -34,7 +34,7 @@ config = {
 
   companionList = {
     anchor    = {"RIGHT", "BOTTOM"},
-    offset    = {-12, -80},
+    offset    = {-12, 96},
     autoscale = true,
     safezone  = true,
     scale     = 1,
