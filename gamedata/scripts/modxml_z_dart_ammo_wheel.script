@@ -1,0 +1,78 @@
+local Dart   = Dart_core
+local Utils  = dart_utils
+local Module = dart_module
+
+
+local mod    = "AMMO_WHEEL"
+local config = Dart.config.ammoWheel
+
+
+function parseUIWheelAmmo(DXML)
+  local wheel, background, texture, all, alt, extended, result, ammo =
+    DXML:query("wheel")[1],
+    DXML:query("wheel > background")[1],
+    DXML:query("wheel > background > texture")[1],
+    DXML:query("wheel > all")[1],
+    DXML:query("wheel > alt")[1],
+    DXML:query("wheel > extended")[1],
+    DXML:query("wheel > result")[1],
+    DXML:query("ammo")[1]
+
+  local itemSettings = {
+    scale     = config.scale,
+    autoscale = config.autoscale,
+  }
+
+  local wheelSettings = Utils.merge(itemSettings, {
+    bounds   = DXML:getElementBounds(wheel),
+    anchor   = config.anchor,
+    offset   = config.offset,
+    safezone = config.safezone,
+  })
+
+  if wheel then
+    DXML:scaleElement(wheel, wheelSettings)
+  end
+
+  if background then
+    DXML:scaleElement(background, itemSettings)
+  end
+
+  if extended then
+    DXML:scaleElement(extended, itemSettings)
+  end
+
+  if result then
+    DXML:scaleElement(result, itemSettings)
+  end
+
+  if
+    texture and config.roundWheel
+    and DXML:getText(texture) == "ui_hud2_wheel_ammo"
+  then
+    DXML:setText(texture, "ui_hud2_wheel_companion")
+  end
+
+  if all then
+    DXML:safeIterate(all, function(child)
+      DXML:scaleElement(child, itemSettings)
+    end)
+  end
+
+  if alt then
+    DXML:safeIterate(alt, function(child)
+      DXML:scaleElement(child, itemSettings)
+    end)
+  end
+
+  if ammo then
+    DXML:safeIterate(ammo, function(child)
+      DXML:scaleElement(child, itemSettings)
+    end)
+  end
+end
+
+
+function on_xml_read()
+  Module.registerModule(mod, "ui\\ui_wheel_ammo", parseUIWheelAmmo)
+end

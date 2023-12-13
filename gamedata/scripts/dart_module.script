@@ -1,0 +1,125 @@
+local Dart     = Dart_core
+local Utils    = dart_utils
+local DartDXML = dart_dxml
+
+
+-- returns true if a DART module is disabled
+function isDisabled(mod)
+  return Utils.getAspectRatioVs(Dart.ratio16x9) <= 1
+end
+
+
+-- create a module logger
+  -- suppresses repeated logs after [config.loglimit] times
+function createLogger(module)
+  module = (module and module ~= "DART")
+    and "DART:" .. module
+    or  "DART"
+
+  local calls = {}
+
+  function log(formatter, ...)
+    local message = string.format(formatter, ...)
+
+    if not calls[message] then
+      calls[message] = 0
+    end
+
+    if calls[message] >= Dart.config.loglimit then
+      return
+    end
+
+    calls[message] = calls[message] + 1
+
+    local note = calls[message] == Dart.config.loglimit
+      and " (suppressing)"
+      or  ""
+
+    printf("[%s] %s%s", module, message, note)
+  end
+
+  function clear()
+    calls = {}
+  end
+
+  return log, clear
+end
+
+
+-- create a module DXML cacher
+function createCache(module)
+  local cache = {}
+
+  local function has(filename)
+    return cache[filename] ~= nil
+  end
+
+  local function set(filename, DXML)
+    cache[filename] = DXML.xml_table.kids
+  end
+
+  local function apply(filename, DXML)
+    DXML.xml_table.kids = cache[filename]
+  end
+
+  local function clear()
+    cache = {}
+  end
+
+  return {
+    has = has,
+    set = set,
+    apply = apply,
+    clear = clear,
+  }
+end
+
+
+-- create a module's on_xml_read callback
+function createXMLCallback(mod, basepath, ...)
+  local log   = createLogger(mod)
+  local cache = createCache(mod)
+  local fns   = {...}
+
+  return function(path, DXML)
+    if not DartDXML.matchesPath(path, basepath) then
+      return
+    end
+
+    local replacement = Dart.xmlFileReplacements[path]
+
+    if replacement then
+      log("Replacing %s", path)
+      return DartDXML.replaceWithFile(DXML, replacement)
+    end
+
+    if cache.has(path) then
+      log("Using cache for %s", path)
+      return cache.apply(path, DXML)
+    end
+
+    DartDXML.extendXMLObject(DXML, path)
+
+    log("Parsing %s (as %s)", path, Utils.getAspectRatioLabel(DXML.aspectRatio))
+    local clock = os.clock()
+
+    for _, fn in ipairs(fns) do
+      fn(DXML)
+    end
+
+    log("Parsed %s in %.3fs", path, os.clock() - clock)
+    cache.set(path, DXML)
+  end
+end
+
+
+-- create and register a module's on_xml_read callback
+function registerModule(mod, basepath, ...)
+  if isDisabled(mod) then
+    return createLogger(mod)("Disabled, skipping %s", basepath)
+  end
+
+  RegisterScriptCallback("on_xml_read",
+    createXMLCallback(mod, basepath, ...)
+  )
+end

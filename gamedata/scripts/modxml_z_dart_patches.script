@@ -1,0 +1,44 @@
+local Dart   = Dart_core
+local Module = dart_module
+
+
+local mod    = "PATCHES"
+local config = Dart.config.patches
+
+
+function parseUIPatches(DXML)
+  local patch = DXML:query("patch_stalker")[1]
+  local name1 = DXML:query("name")[1]
+  local rank1 = DXML:query("rank")[1]
+  local name2 = DXML:query("name_r")[1]
+  local rank2 = DXML:query("rank_r")[1]
+
+  if patch then
+    Dart.state.patchSize = {
+      x = DXML:safeGetAttrs(patch).width,
+      y = DXML:safeGetAttrs(patch).height,
+    }
+  end
+
+  Dart.state.patchAspectRatio = DXML.aspectRatio
+
+  local scaleSettings = {
+    bounds    = DXML:getElementBounds(patch, name1, rank1, name2, rank2),
+    offset    = config.offset,
+    anchor    = config.anchor,
+    scale     = config.scale,
+    autoscale = config.autoscale,
+    safezone  = config.safezone
+  }
+
+  DXML:safeIterate(function(child, index)
+    if DXML:getElementName(child):match("^patch_") then
+      DXML:scaleElement(child, scaleSettings)
+    end
+  end)
+end
+
+
+function on_xml_read()
+  Module.registerModule(mod, "ui\\ui_patches", parseUIPatches)
+end

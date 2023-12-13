@@ -1,0 +1,171 @@
+local Dart  = Dart_core
+local Utils = dart_utils
+
+
+-- split path into basepath and suffix
+  -- "a\b\c_16.xml" => "a\b\c", "16"
+function splitPath(path)
+  return path:match("(%w[_%w\\]+%a)_?(%d?%d?)%d*.xml$")
+end
+
+
+-- returns true if path and basepath match
+function matchesPath(path, basepath)
+  local base, suffix = splitPath(path)
+  return base == basepath, suffix
+end
+
+
+-- substitute one XML file for another
+function replaceWithFile(DXML, path, dispatch)
+  local children = {}
+
+  -- can't remove element directly
+  safeIterate(DXML, function(child)
+    table.insert(children, child)
+  end)
+
+  for _, child in ipairs(children) do
+    DXML:removeElement(child)
+  end
+
+  DXML:insertFromXMLFile(path, nil, nil, true)
+
+  -- re-dispatch "on_xml_read"
+  if dispatch ~= false then
+    dxml_core.xmlDispatch(path, DXML)
+  end
+end
+
+
+-- detect XML source aspect ratio using filename and special rules
+function getXMLAspectRatio(DXML, path)
+  local _, suffix = splitPath(path)
+
+  return
+    Dart.xmlAspectRatios[path]
+    or Dart.xmlFileSuffixes[suffix]
+    or Dart.ratio16x9
+end
+
+
+-- like DXML:isElement() but does not throw
+function safeIsElement(DXML, element)
+  return element and element.el and DXML:isElement(element)
+end
+
+
+-- like DXML:getElementAttr() but sanitizes numeric values
+function safeGetAttrs(DXML, element)
+  return Utils.sanitizeAttrs(DXML:getElementAttr(element))
+end
+
+
+-- like DXML:setElementAttr() but you can also pass a callback
+  -- callback passes current (sanitized) attributes
+function safeSetAttrs(DXML, element, attrs)
+  if type(attrs) == "function" then
+    attrs = attrs(safeGetAttrs(DXML, element) or {})
+  end
+  DXML:setElementAttr(element, attrs)
+end
+
+
+-- like DXML:iterateChildren() but only passes elements
+  -- element is optional and defaults to root
+  -- values returned from callback are collected and returned
+function safeIterate(DXML, element, callback)
+  if not callback and type(element) == "function" then
+    callback = element
+    element  = DXML:getRoot()
+  end
+
+  local results
+
+  DXML:iterateChildren(element, function(child, index)
+    if not safeIsElement(DXML, child) then
+      return
+    end
+
+    local result = callback(child, index)
+
+    if result then
+      if not results then
+        results = {}
+      end
+      table.insert(results, result)
+    end
+  end)
+
+  return results
+end
+
+
+-- find {l, r, t, b} bounds of [n] elements (defaults to children of root)
+function getElementBounds(DXML, ...)
+  local args  = {...}
+  local attrs = {}
+
+  if #args == 0 then
+    args = DXML:getRoot().kids
+  end
+
+  Utils.ipairscb(args, function(element)
+    if safeIsElement(DXML, element) then
+      attrs[#attrs + 1] = safeGetAttrs(DXML, element)
+    end
+  end)
+
+  return Utils.getBounds(unpack(attrs))
+end
+
+
+-- scale an element to current aspect ratio
+function scaleElement(DXML, element, targetRatio, settings)
+  local attrs  = safeGetAttrs(DXML, element) or {}
+  local scaled = Utils.scaleAttrs(attrs, targetRatio, settings)
+
+  safeSetAttrs(DXML, element, scaled)
+
+  return scaled
+end
+
+
+-- Extend a DXML object with methods and properties
+function extendXMLObject(DXML, path)
+  local basepath, suffix = splitPath(path)
+
+  if not basepath then
+    error("Unexpected filename passed to DXML: " .. path)
+  end
+
+  DXML.isExtended  = true
+  DXML.path        = path
+  DXML.basepath    = basepath
+  DXML.aspectRatio = getXMLAspectRatio(DXML, path)
+
+
+  function DXML:safeIsElement(element)
+    return safeIsElement(self, element)
+  end
+
+  function DXML:safeIterate(element, callback)
+    return safeIterate(self, element, callback)
+  end
+
+  function DXML:safeGetAttrs(element)
+    return safeGetAttrs(self, element)
+  end
+
+  function DXML:safeSetAttrs(element, attrs)
+    return safeSetAttrs(self, element, attrs)
+  end
+
+  function DXML:scaleElement(element, settings)
+    return scaleElement(self, element, self.aspectRatio, settings)
+  end
+
+  function DXML:getElementBounds(...)
+    return getElementBounds(self, ...)
+  end
+end

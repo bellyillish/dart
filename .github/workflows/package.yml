@@ -1,0 +1,92 @@
+name: Package BAIN Installer
+
+on:
+  release:
+    types: [published]
+    branches:
+      - main
+    tags:
+      - "v*"
+
+jobs:
+  package:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Create folders and copy files
+      run: |
+        mkdir -p "00 Dart Core (Required)/gamedata/configs/ui"
+        mkdir -p "00 Dart Core (Required)/gamedata/scripts"
+        mkdir -p "01 (HUD) BHS/gamedata/scripts"
+        mkdir -p "02 (HUD) Companion List/gamedata/scripts"
+        mkdir -p "03 (HUD) Faction ID Patches/gamedata/configs/unlocalizers"
+        mkdir -p "03 (HUD) Faction ID Patches/gamedata/scripts"
+        mkdir -p "04 (HUD) Status Icons/gamedata/scripts"
+        mkdir -p "05 (HUD) Messsages List/gamedata/scripts"
+        mkdir -p "06 PDA Map Markers/gamedata/scripts"
+        mkdir -p "07 Circular Minimap/gamedata/scripts"
+        mkdir -p "08 Ammo & Companion Wheels/gamedata/scripts"
+        mkdir -p "09 Scopes/gamedata/scripts"
+        mkdir -p "09 Scopes/gamedata/textures"
+        mkdir -p "10 Inventory Icons/gamedata/scripts"
+        mkdir -p "11 Mask Tweaks (from GIRTH)/gamedata/shaders/r3"
+        mv gamedata/configs/ui/* "00 Dart Core (Required)/gamedata/configs/ui/"
+        mv gamedata/scripts/dart_config.script "00 Dart Core (Required)/gamedata/scripts/"
+        mv gamedata/scripts/dart_core.script "00 Dart Core (Required)/gamedata/scripts/"
+        mv gamedata/scripts/dart_dxml.script "00 Dart Core (Required)/gamedata/scripts/"
+        mv gamedata/scripts/dart_module.script "00 Dart Core (Required)/gamedata/scripts/"
+        mv gamedata/scripts/dart_utils.script "00 Dart Core (Required)/gamedata/scripts/"
+        mv gamedata/scripts/modxml_z_dart_bhs.script "01 (HUD) BHS/gamedata/scripts/"
+        mv gamedata/scripts/modxml_z_dart_companion_list.script "02 (HUD) Companion List/gamedata/scripts/"
+        mv gamedata/scripts/zzz_dart_companion_list.script "02 (HUD) Companion List/gamedata/scripts/"
+        mv gamedata/configs/unlocalizers/unlocalizer_dart_patches.ltx "03 (HUD) Faction ID Patches/gamedata/configs/unlocalizers/"
+        mv gamedata/scripts/modxml_z_dart_patches.script "03 (HUD) Faction ID Patches/gamedata/scripts/"
+        mv gamedata/scripts/zzz_dart_patches.script "03 (HUD) Faction ID Patches/gamedata/scripts/"
+        mv gamedata/scripts/modxml_z_dart_status_icons.script "04 (HUD) Status Icons/gamedata/scripts/"
+        mv gamedata/scripts/zzz_dart_status_icons.script "04 (HUD) Status Icons/gamedata/scripts/"
+        mv gamedata/scripts/modxml_z_dart_messages.script "05 (HUD) Messsages List/gamedata/scripts/"
+        mv gamedata/scripts/modxml_z_dart_markers.script "06 PDA Map Markers/gamedata/scripts/"
+        mv gamedata/scripts/modxml_z_dart_minimap.script "07 Circular Minimap/gamedata/scripts/"
+        mv gamedata/scripts/modxml_z_dart_ammo_wheel.script "08 Ammo & Companion Wheels/gamedata/scripts/"
+        mv gamedata/scripts/modxml_z_dart_companion_wheel.script "08 Ammo & Companion Wheels/gamedata/scripts/"
+        mv gamedata/scripts/modxml_z_dart_scopes.script "09 Scopes/gamedata/scripts/"
+        mv gamedata/textures/wpn_crosshair_bino.dds "09 Scopes/gamedata/textures/"
+        mv gamedata/scripts/modxml_z_dart_inventory.script "10 Inventory Icons/gamedata/scripts/"
+        mv gamedata/scripts/zzz_dart_inventory.script "10 Inventory Icons/gamedata/scripts/"
+        mv gamedata/shaders/r3/* "11 Mask Tweaks (from GIRTH)/gamedata/shaders/r3/"
+        rm -rf gamedata
+
+    - name: Archive files
+      run: |
+        7z a -r release.7z gamedata
+
+    # - uses: ncipollo/release-action@v1.12.0
+    #   id: create_release
+    #   env:
+    #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # - name: Create Release
+    #   id: create_release
+    #   uses: actions/create-release@v1
+    #   with:
+    #     tag_name: v${{ github.run_number }}
+    #     release_name: Dynamic_Aspect_Ratio_Tweaks-${{ github.run_number }}
+    #     draft: false
+    #     prerelease: false
+    #   env:
+    #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Artifact
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset: ./release.7z
+        asset_name: ${{ github.event.release.name }}.7z
+        asset_content_type: application/x-7z-compressed
+        overwrite: true
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
