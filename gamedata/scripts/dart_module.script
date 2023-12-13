@@ -77,20 +77,6 @@ function createCache(module)
 end
 
 
--- check if xmlFileReplacements includes this file
--- if it does, trigger the replacement
-function checkForReplacement(DXML, path)
-  local replacement = Dart.xmlFileReplacements[path]
-
-  if not replacement then
-    return false
-  end
-
-  DartDXML.replaceWithFile(DXML, replacement)
-  return true, replacement
-end
-
-
 -- create a module's on_xml_read callback
 function createXMLCallback(mod, basepath, ...)
   local log   = createLogger(mod)
@@ -102,8 +88,11 @@ function createXMLCallback(mod, basepath, ...)
       return
     end
 
-    if checkForReplacement(DXML, path) then
-      return log("Replacing %s", path)
+    local replacement = Dart.xmlFileReplacements[path]
+
+    if replacement then
+      log("Replacing %s", path)
+      return DartDXML.replaceWithFile(DXML, replacement)
     end
 
     if cache.has(path) then
@@ -112,13 +101,15 @@ function createXMLCallback(mod, basepath, ...)
     end
 
     DartDXML.extendXMLObject(DXML, path)
-    log("Parsing %s", path)
+
+    log("Parsing %s (as %s)", path, Utils.getAspectRatioLabel(DXML.aspectRatio))
+    local clock = os.clock()
 
     for _, fn in ipairs(fns) do
       fn(DXML)
     end
 
-    log("Caching %s", path)
+    log("Parsed %s in %.3fs", path, os.clock() - clock)
     cache.set(path, DXML)
   end
 end
