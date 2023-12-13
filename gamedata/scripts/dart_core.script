@@ -3,19 +3,6 @@ config = {
   loglimit = 10,
   safezone = 0,
 
-  disabledModules = {
-    AMMO_WHEEL      = false,
-    BHS             = false,
-    COMPANION_LIST  = false,
-    COMPANION_WHEEL = false,
-    INVENTORY       = false,
-    MESSAGES        = false,
-    MINIMAP         = false,
-    PATCHES         = false,
-    SCOPES          = false,
-    STATUS_ICONS    = false,
-  },
-
   ammoWheel = {
     anchor     = {"CENTER", "CENTER"},
     offset     = {0, 0},

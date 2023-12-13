@@ -1,19 +1,6 @@
 local Dart = Dart_core
 
 
--- enable/disable individual modules
-Dart.config.disabledModules.AMMO_WHEEL      = false
-Dart.config.disabledModules.BHS             = false
-Dart.config.disabledModules.COMPANION_LIST  = false
-Dart.config.disabledModules.COMPANION_WHEEL = false
-Dart.config.disabledModules.INVENTORY       = false
-Dart.config.disabledModules.MESSAGES        = false
-Dart.config.disabledModules.MINIMAP         = false
-Dart.config.disabledModules.PATCHES         = false
-Dart.config.disabledModules.SCOPES          = false
-Dart.config.disabledModules.STATUS_ICONS    = false
-
-
 -- moves HUD elements [n] pixels closer to the center of the screen
 Dart.config.safezone = 320
 
