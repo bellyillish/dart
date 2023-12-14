@@ -2,7 +2,7 @@ local Dart = Dart_core
 
 
 -- moves HUD elements [n] pixels closer to the center of the screen
-Dart.config.safezone = 320
+Dart.config.safezone = 0
 
 
 -- move an element by {x, y} pixels
