@@ -32,7 +32,7 @@ end
 
 
 function getAspectRatioVs(otherRatio)
-  return math.max(getAspectRatio() / otherRatio - 0.01, 1)
+  return getAspectRatio() / otherRatio
 end
 
 

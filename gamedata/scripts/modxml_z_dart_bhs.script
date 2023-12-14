@@ -1,7 +1,5 @@
-local Dart     = Dart_core
-local DartDXML = dart_dxml
-local Module   = dart_module
-local Utils    = dart_module
+local Dart   = Dart_core
+local Module = dart_module
 
 
 local mod    = "BHS"
@@ -26,11 +24,7 @@ function isBHSElement(DXML, element)
   end
 
   local name = DXML:getElementName(element)
-
-  return
-    (name:match("^bhs_") or name:match("^body_health_"))
-    and not name:match("_43$")
-    and not name:match("_1610$")
+  return name:match("^bhs_") or name:match("^body_health_")
 end
 
 
@@ -64,15 +58,25 @@ function parseMaingame(DXML)
     return
   end
 
+  local psybar   = DXML:query("progress_bar_psy", hudStates)[1]
+  local progress = DXML:query("progress", psybar)[1]
+
+  if psybar then
+    -- slight nudge for better alignment
+    DXML:safeSetAttrs(psybar, function(attrs)
+      return {height = attrs.height + 1, width = attrs.width - 1}
+    end)
+  end
+
+  if progress then
+    DXML:safeSetAttrs(progress, function(attrs)
+      return {stretch = 1}
+    end)
+  end
+
   DXML:safeIterate(hudStates, function(child)
     DXML:scaleElement(child, getScaleSettings())
   end)
-
-  local psyProgress = DXML:query("progress_bar_psy > progress", hudStates)[1]
-
-  if psyProgress then
-    DXML:safeSetAttrs(psyProgress, {stretch = 1})
-  end
 end
 
 
@@ -85,40 +89,12 @@ function parseSidHudComponent(DXML)
     return
   end
 
-  DXML:safeSetAttrs(radHealth, function(attrs)
-    -- transfer y value from sidhud to radHealth
-    if attrs.y then
-      attrs.y = attrs.y + (DXML:safeGetAttrs(sidhud).y or 0)
-    end
+  DXML:scaleElement(sidhud, getScaleSettings())
 
-    -- appearance tweaks to base GAMMA values
-    if attrs.x == "13" then
-      attrs.x = attrs.x + 1
-    end
-    if attrs.height == "2" then
-      attrs.height = attrs.height + 1
-    end
-
-    return attrs
-  end)
-
-  DXML:safeSetAttrs(sidhud, {y = 0})
-
-  DXML:safeSetAttrs(value, function(attrs)
-    attrs.x = 0
-
-    -- appearance tweaks to base GAMMA values
-    if attrs.width == "70" then
-      attrs.width = attrs.width + 1
-    end
-    if attrs.height == "2" then
-      attrs.height = attrs.height + 1
-    end
-
-    return attrs
-  end)
-
-  DXML:scaleElement(radHealth, getScaleSettings())
+  DXML:scaleElement(radHealth, {
+    scale     = config.scale,
+    autoscale = config.autoscale,
+  })
 
   DXML:scaleElement(value, {
     scale     = config.scale,

@@ -71,15 +71,15 @@ function adjustPDAMarker(DXML, element)
   local heightChange = attrs.height
 
   -- factor aspect ratio
-  widthChange  = widthChange * (factor - 1)
-  heightChange = widthChange * (factor - 1)
+  widthChange  = widthChange  * (factor - 1)
+  heightChange = heightChange * (factor - 1)
 
   -- factor angle and scale down if not 90 degrees
-  widthChange  = widthChange  * (Utils.abcosd(angle) - 0.5 * (angle % 90) / 45)
-  heightChange = heightChange * (Utils.absind(angle) - 0.5 * (angle % 90) / 45)
+  widthChange  = widthChange  * (Utils.abcosd(angle) - 0.68 * (angle % 90) / 45)
+  heightChange = heightChange * (Utils.absind(angle) - 0.68 * (angle % 90) / 45)
 
   DXML:safeSetAttrs(element, {
-    width   = attrs.width + widthChange,
+    width   = attrs.width  + widthChange,
     height  = attrs.height + heightChange,
     stretch = 1,
   })

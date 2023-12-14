@@ -3,9 +3,9 @@ local Utils    = dart_utils
 local DartDXML = dart_dxml
 
 
--- returns true if a DART module is disabled
+-- check if a DART module is disabled (placeholder)
 function isDisabled(mod)
-  return Utils.getAspectRatioVs(Dart.ratio16x9) <= 1
+  return false
 end
 
 
