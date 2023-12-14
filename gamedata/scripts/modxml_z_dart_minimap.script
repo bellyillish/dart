@@ -1,0 +1,72 @@
+local Dart   = Dart_core
+local Utils  = dart_utils
+local Module = dart_module
+
+
+local mod    = "MINIMAP"
+local config = Dart.config.minimap
+
+
+-- We can't use DXML:scaleElement() because:
+--   - minimap elements are expressed in dumb units for no reason
+--   - minimap element widths are aleady adjusted for aspect ratio
+function parseZoneMap(DXML)
+  local compass = DXML:query("minimap > compass")[1]
+  local frame   = DXML:query("minimap > level_frame")[1]
+  local bg      = DXML:query("minimap > background")[1]
+  local clock   = DXML:query("minimap > clock_wnd")[1]
+
+  local compassAttrs = DXML:safeGetAttrs(compass)
+  local frameAttrs   = DXML:safeGetAttrs(frame)
+  local bgAttrs      = DXML:safeGetAttrs(bg)
+
+  local scale = config.autoscale
+    and Utils.addAutoscale(config.scale)
+    or  config.scale
+
+  local scaleSettings = Utils.merge(config, {
+    bounds = {
+      l = (frameAttrs.x * Dart.baseHeight - compassAttrs.width / 2),
+      t = (frameAttrs.y * Dart.baseHeight - compassAttrs.height / 2),
+      r = (frameAttrs.x * Dart.baseHeight + compassAttrs.width / 2),
+      b = (frameAttrs.y * Dart.baseHeight + compassAttrs.height / 2),
+    }
+  })
+
+  DXML:safeSetAttrs(frame, function(attrs)
+    local dumbUnits = Dart.baseHeight
+    return {
+      x      = Utils.scaleX(attrs.x * dumbUnits, DXML.aspectRatio, scaleSettings) / dumbUnits,
+      y      = Utils.scaleY(attrs.y * dumbUnits, DXML.aspectRatio, scaleSettings) / dumbUnits,
+      width  = attrs.width  * config.scale,
+      height = attrs.height * config.scale,
+    }
+  end)
+
+  DXML:safeSetAttrs(compass, function(attrs)
+    return {
+      width  = attrs.width  * config.scale,
+      height = attrs.height * config.scale,
+    }
+  end)
+
+  DXML:safeSetAttrs(bg, function(attrs)
+    return {
+      width  = attrs.width  * config.scale,
+      height = attrs.height * config.scale,
+    }
+  end)
+
+  DXML:safeSetAttrs(clock, function(attrs)
+    local dumbUnits = bgAttrs.height * Dart.baseHeight
+    return {
+      x = (attrs.x * dumbUnits + config.clockOffset[1] / Utils.getAspectRatioVs(Dart.ratio4x3)) / dumbUnits,
+      y = (attrs.y * dumbUnits + config.clockOffset[2] / Utils.getAspectRatioVs(Dart.ratio4x3)) / dumbUnits,
+    }
+  end)
+end
+
+
+function on_xml_read()
+  Module.registerModule(mod, "ui\\zone_map", parseZoneMap)
+end

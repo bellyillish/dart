@@ -1,0 +1,139 @@
+local Dart     = Dart_core
+local DartDXML = dart_dxml
+local Module   = dart_module
+local Utils    = dart_module
+
+
+local mod    = "BHS"
+local config = Dart.config.bhs
+
+
+function getScaleSettings()
+  return {
+    bounds    = Dart.state.bhsBounds,
+    anchor    = config.anchor,
+    safezone  = config.safezone,
+    offset    = config.offset,
+    scale     = config.scale,
+    autoscale = config.autoscale,
+  }
+end
+
+
+function isBHSElement(DXML, element)
+  if not DXML:safeIsElement(element) then
+    return false
+  end
+
+  local name = DXML:getElementName(element)
+
+  return
+    (name:match("^bhs_") or name:match("^body_health_"))
+    and not name:match("_43$")
+    and not name:match("_1610$")
+end
+
+
+function parseUICustomMsgs(DXML)
+  local container = DXML:query("body_health_system")[1]
+  Dart.state.bhsBounds = DXML:getElementBounds(container)
+
+  DXML:safeIterate(function(child)
+    if isBHSElement(DXML, child) then
+      DXML:scaleElement(child, getScaleSettings())
+    end
+  end)
+end
+
+
+function parseUIBodyHealth(DXML)
+  DXML:safeIterate(function(child)
+    if isBHSElement(DXML, child) then
+      DXML:scaleElement(child, {
+        scale     = config.scale,
+        autoscale = config.autoscale,
+      })
+    end
+  end)
+end
+
+
+function parseMaingame(DXML)
+  local hudStates = DXML:query("hud_states")[1]
+  if not hudStates then
+    return
+  end
+
+  DXML:safeIterate(hudStates, function(child)
+    DXML:scaleElement(child, getScaleSettings())
+  end)
+
+  local psyProgress = DXML:query("progress_bar_psy > progress", hudStates)[1]
+
+  if psyProgress then
+    DXML:safeSetAttrs(psyProgress, {stretch = 1})
+  end
+end
+
+
+function parseSidHudComponent(DXML)
+  local sidhud    = DXML:query("sidhud")[1]
+  local radHealth = DXML:query("sidhud > rad_health")[1]
+  local value     = DXML:query("sidhud > rad_health > value")[1]
+
+  if not (sidhud and radHealth and value) then
+    return
+  end
+
+  DXML:safeSetAttrs(radHealth, function(attrs)
+    -- transfer y value from sidhud to radHealth
+    if attrs.y then
+      attrs.y = attrs.y + (DXML:safeGetAttrs(sidhud).y or 0)
+    end
+
+    -- appearance tweaks to base GAMMA values
+    if attrs.x == "13" then
+      attrs.x = attrs.x + 1
+    end
+    if attrs.height == "2" then
+      attrs.height = attrs.height + 1
+    end
+
+    return attrs
+  end)
+
+  DXML:safeSetAttrs(sidhud, {y = 0})
+
+  DXML:safeSetAttrs(value, function(attrs)
+    attrs.x = 0
+
+    -- appearance tweaks to base GAMMA values
+    if attrs.width == "70" then
+      attrs.width = attrs.width + 1
+    end
+    if attrs.height == "2" then
+      attrs.height = attrs.height + 1
+    end
+
+    return attrs
+  end)
+
+  DXML:scaleElement(radHealth, getScaleSettings())
+
+  DXML:scaleElement(value, {
+    scale     = config.scale,
+    autoscale = config.autoscale,
+  })
+end
+
+
+function on_xml_read()
+  Module.registerModule(mod, "ui\\ui_custom_msgs", parseUICustomMsgs)
+  Module.registerModule(mod, "ui\\ui_body_health", parseUIBodyHealth)
+  Module.registerModule(mod, "ui\\maingame", parseMaingame)
+  Module.registerModule(mod, "ui\\ui_sidhud_component", parseSidHudComponent)
+
+  if not Dart.state.bhsBounds then
+    CScriptXmlInit():ParseFile("ui_custom_msgs.xml")
+  end
+end

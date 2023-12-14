@@ -1,0 +1,232 @@
+local Dart   = Dart_core
+local Utils  = dart_utils
+local Module = dart_module
+
+
+local mod    = "MARKERS"
+local config = Dart.config.markers
+local log    = Module.createLogger(mod)
+
+
+local MARKER_INDEX, TOUCHED = {}, {}
+
+
+function clearMarkerIndexes()
+  MARKER_INDEX, TOUCHED = {}, {}
+end
+
+
+-- potential valid markersa are elements that have valid
+-- widths and heights and are not textures
+function isValidMarker(DXML, element)
+  if not DXML:safeIsElement(element) then
+    return false
+  end
+
+  local name = DXML:getElementName(element)
+
+  if name == "texture" or name:match("^texture_") then
+    return false
+  end
+
+  local width  = DXML:safeGetAttrs(element).width
+  local height = DXML:safeGetAttrs(element).height
+
+  return (width and height and width ~= "0" and height ~= "0")
+end
+
+
+-- map_spots is a fairly flat but large file, so markers are pre-collected
+-- in and indexed for perforamnce, and duplicate markers are removed to
+-- avoid unexpected behavior
+function buildMarkerIndex(DXML)
+  DXML:safeIterate(function(child)
+    if not isValidMarker(DXML, child) then
+      return
+    end
+
+    local name = DXML:getElementName(child)
+
+    -- remove duplicate markers
+    if MARKER_INDEX[name] then
+      log("Removing duplicate marker %s", name)
+      DXML:removeElement(MARKER_INDEX[name])
+    end
+
+    MARKER_INDEX[name] = child
+  end)
+end
+
+
+-- transition arrows can be rotated, and {x, y, width, height} is applied
+-- post-rotation. we have to do some trig to scale width and height,
+-- but it's not perfect because they're irreversably distorted
+function adjustPDAMarker(DXML, element)
+  local factor = Utils.getAspectRatioVs(DXML.aspectRatio)
+  local attrs  = DXML:getElementAttr(element)
+  local name   = DXML:getElementName(element)
+
+  local angle = attrs.heading_angle or 0
+  local widthChange  = attrs.width
+  local heightChange = attrs.height
+
+  -- factor aspect ratio
+  widthChange  = widthChange * (factor - 1)
+  heightChange = widthChange * (factor - 1)
+
+  -- factor angle and scale down if not 90 degrees
+  widthChange  = widthChange  * (Utils.abcosd(angle) - 0.5 * (angle % 90) / 45)
+  heightChange = heightChange * (Utils.absind(angle) - 0.5 * (angle % 90) / 45)
+
+  DXML:safeSetAttrs(element, {
+    width   = attrs.width + widthChange,
+    height  = attrs.height + heightChange,
+    stretch = 1,
+  })
+
+  -- Extra fudge factor for blinky things
+  if name == "static_border" then
+    DXML:safeSetAttrs(element, {x = attrs.x + 1})
+  end
+
+  -- this specific animation gets distorted
+  DXML:removeElementAttr(element, {"xform_anim"})
+end
+
+
+-- handles PDA (level_map) markers
+-- map_spots.xml contains a a few different things
+--   1. definitions that contain <level_map> and/or <mini_map> children which
+--      have 'spot' and 'pointer' attributes that reference map markers
+--   2. definitions that contain <complex_spot> and (possibly) <mini_map>
+--      children as well, which have the same attributes
+--   3. map markers whose names are referenced in 'spot' and 'pointer'
+--
+-- level_map markers need to be stretched in place while mini_map markers
+-- don't, but mini_map markers may have children (e.g. a blinking indicator)
+-- that need to be realigned with their parent. some markers are reused for
+-- both the level_map and mini_map, in which case a separate copy has to be
+-- made so they can be altered independently of each other
+function parsePDAMarkers(DXML)
+  if not Utils.isUsing3DPDA() then
+    return log("Disabled because the 3D PDA is not being used")
+  end
+
+  -- saerch for level_map marker definitions
+  Utils.ipairscb({"level_map", "complex_spot"}, function(query)
+    local definitions = DXML:query(query)
+
+    if not definitions then
+      return
+    end
+
+    Utils.ipairscb(definitions, function(definition)
+      local miniDefinition = DXML:query("mini_map", definition.parent)[1]
+
+      Utils.ipairscb({"spot", "pointer"}, function(attribute)
+        local name, miniName = DXML:safeGetAttrs(definition)[attribute]
+
+        if not name or not MARKER_INDEX[name] then
+         return
+        end
+
+        if miniDefinition then
+          miniName = DXML:safeGetAttrs(miniDefinition)[attribute]
+        end
+
+        -- a separate mini_map copy needs to be made
+        if miniName == name then
+          miniName = miniName .. "_mini"
+
+          if not MARKER_INDEX[miniName] then
+            MARKER_INDEX[miniName] = DXML:insertElement({
+              name = miniName,
+              attr = DXML:safeGetAttrs(MARKER_INDEX[name]),
+              kids = MARKER_INDEX[name].kids
+            })
+          end
+
+          DXML:safeSetAttrs(miniDefinition, {[attribute] = miniName})
+        end
+
+        -- markers can be referenced multple times, so TOUCHED prevents
+        -- them from being resized more than once, and complex spots may
+        -- have children that also need to be resized
+        if
+          not TOUCHED[MARKER_INDEX[name]]
+          and isValidMarker(DXML, MARKER_INDEX[name])
+        then
+          adjustPDAMarker(DXML, MARKER_INDEX[name])
+          DXML:safeIterate(MARKER_INDEX[name], function(child)
+            if isValidMarker(DXML, child) then
+              adjustPDAMarker(DXML, child)
+            end
+          end)
+
+          TOUCHED[MARKER_INDEX[name]] = true
+        end
+      end)
+    end)
+  end)
+end
+
+
+function adjustMinimapMarker(DXML, element)
+  DXML:safeIterate(element, function(child)
+    if
+      not DXML:safeIsElement(child)
+      or  DXML:getElementName(child) == "texture"
+      or  DXML:getElementName(child):match("^texture_")
+    then
+      return
+    end
+
+    -- only shift (no resize)
+    DXML:safeSetAttrs(child, function(attrs)
+      local x = Utils.scaleX(attrs.x, DXML.aspectRatio)
+
+      -- Extra fudge factor for blinky things
+      if DXML:getElementName(child) == "static_border" then
+        x = x  + 1
+      end
+
+      return {x = x}
+    end)
+  end)
+end
+
+
+function parseMinimapMarkers(DXML)
+  local definitions = DXML:query("mini_map")
+
+  if not definitions then
+    return
+  end
+
+  Utils.ipairscb(definitions, function(definition)
+    Utils.ipairscb({"spot", "pointer"}, function(attribute)
+      local name = DXML:safeGetAttrs(definition)[attribute]
+
+      if
+        not name
+        or not MARKER_INDEX[name]
+        or TOUCHED[MARKER_INDEX[name]]
+      then
+        return
+      end
+
+      adjustMinimapMarker(DXML, MARKER_INDEX[name])
+      TOUCHED[MARKER_INDEX[name]] = true
+    end)
+  end)
+end
+
+
+function on_xml_read()
+  Module.registerModule(mod, "ui\\map_spots",
+    buildMarkerIndex,
+    parsePDAMarkers,
+    parseMinimapMarkers,
+    clearMarkerIndexes
+  )
+end

@@ -1,0 +1,40 @@
+local Dart   = Dart_core
+local Module = dart_module
+
+
+local mod    = "MESSAGES"
+local config = Dart.config.messages
+
+
+function parseMessagesWindow(DXML)
+  local list1 = DXML:query("sp_log_list")[1]
+  local list2 = DXML:query("sp_log_list2")[1]
+
+  local scaleSettings = {
+    bounds    = DXML:getElementBounds(list1, list2),
+    offset    = config.offset,
+    anchor    = config.anchor,
+    scale     = config.scale,
+    autoscale = config.autoscale,
+    safezone  = config.safezone
+  }
+
+  DXML:scaleElement(list1, scaleSettings)
+  DXML:scaleElement(list2, scaleSettings)
+end
+
+
+function parseMaingamePdaMsg(DXML)
+  DXML:safeIterate(function(child)
+    DXML:scaleElement(child, {
+      scale     = config.scale,
+      autoscale = config.autoscale,
+    })
+  end)
+end
+
+
+function on_xml_read()
+  Module.registerModule(mod, "ui\\messages_window", parseMessagesWindow)
+  Module.registerModule(mod, "ui\\maingame_pda_msg", parseMaingamePdaMsg)
+end
