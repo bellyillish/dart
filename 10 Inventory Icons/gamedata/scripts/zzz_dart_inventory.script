@@ -1,11 +1,12 @@
-local Dart   = Dart_core
+local Dart   = dart_core
 local Utils  = dart_utils
 local Module = dart_module
 
 
-local mod    = "INVENTORY"
+local mod    = "inventory"
 local log    = Module.createLogger(mod)
 local config = Dart.config.inventory
+local state  = Dart.state.inventory
 
 
 -- only auto-resize these container IDs (just a best guess)
@@ -27,23 +28,9 @@ else
 
   local InitControls = utils_ui.UICellContainer.InitControls
 
-
   function utils_ui.UICellContainer:InitControls(owner, prof, ele_base)
-    -- make sure XML has been parsed first
-    if not (Dart.state.inventoryAspectRatio) then
-      CScriptXmlInit():ParseFile("ui_inventory.xml")
-    end
-
-    local scale, autoscale, padScale =
-      config.scale,
-      config.autoscale,
-      config.padScale
-
-    local xmlAspectRatio = Dart.state.inventoryAspectRatio
-
-    if autoscale then
-      scale = Utils.addAutoscale(scale)
-    end
+    local scale, padScale = config.scale, config.padScale
+    local xmlAspectRatio  = state.xmlAspectRatio
 
     local gridSize = self.grid_size * scale
     local gridLine = self.grid_line * padScale
@@ -57,7 +44,7 @@ else
 
       -- calculate how many cells can fit in the given width,
       -- then resize the cells to perfectly fill that space
-      local width       = Utils.scaleW(container:GetWidth(), xmlAspectRatio)
+      local width       = Utils.correctW(container:GetWidth(), xmlAspectRatio)
       local itemsPerRow = math.floor(width / (gridSize + gridLine))
       local cellSize    = width / itemsPerRow
 
@@ -66,7 +53,7 @@ else
 
     -- grid_size doesn't stretch to aspect ratio but grid_line does
     self.grid_size = gridSize
-    self.grid_line = Utils.scaleW(gridLine, xmlAspectRatio)
+    self.grid_line = Utils.correctW(gridLine, xmlAspectRatio)
 
     return InitControls(self, owner, prof, ele_base)
   end

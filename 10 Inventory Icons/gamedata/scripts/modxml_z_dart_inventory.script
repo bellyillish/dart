@@ -1,16 +1,20 @@
-local Dart   = Dart_core
+local Dart   = dart_core
 local Module = dart_module
 
 
-local mod    = "INVENTORY"
+local mod    = "inventory"
 local config = Dart.config.inventory
+local state  = Dart.state.inventory
 
 
-function parseUIInventory(DXML)
-  Dart.state.inventoryAspectRatio = DXML.aspectRatio
+function parseUIInventory(XML)
+  state.xmlAspectRatio = XML.aspectRatio
 end
 
 
 function on_xml_read()
-  Module.registerModule(mod, "ui\\ui_inventory", parseUIInventory)
+  Module.registerModule(mod, "ui_inventory", parseUIInventory)
+
+  -- make sure XML has been parsed first
+  CScriptXmlInit():ParseFile("ui_inventory.xml")
 end

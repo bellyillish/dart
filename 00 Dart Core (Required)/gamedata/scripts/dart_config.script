@@ -1,65 +1,59 @@
-local Dart = Dart_core
+local config = dart_core.config
 
 
 -- moves HUD elements [n] pixels closer to the center of the screen
-Dart.config.safezone = 0
+config.safezone = 0
 
 
 -- move an element by {x, y} pixels
 -- positive values move down and to the right
-Dart.config.ammoWheel.offset      = {0, 0}
-Dart.config.bhs.offset            = {8, 0}
-Dart.config.companionList.offset  = {-12, -96}
-Dart.config.companionWheel.offset = {0, 0}
-Dart.config.messages.offset       = {0, -12}
-Dart.config.minimap.offset        = {0, 0}
-Dart.config.patches.offset        = {12, 0}
-Dart.config.statusIcons.offset    = {-4, -8}
+config.ammoWheel.offset      = {0, 0}
+config.bhs.offset            = {8, 0}
+config.companionList.offset  = {-12, -96}
+config.companionWheel.offset = {0, 0}
+config.messages.offset       = {0, -12}
+config.minimap.offset        = {0, 0}
+config.patches.offset        = {12, 0}
+config.statusIcons.offset    = {-4, -8}
 
 
 -- make an element [n] times its normal size
 -- results may vary (e.g. text never scales)
-Dart.config.ammoWheel.scale      = 1
-Dart.config.bhs.scale            = 1
-Dart.config.companionList.scale  = 1
-Dart.config.companionWheel.scale = 1
-Dart.config.inventory.scale      = 1 -- scales icons
-Dart.config.minimap.scale        = 1
-Dart.config.messages.scale       = 1
-Dart.config.patches.scale        = 1.25 -- scales patches
-Dart.config.statusIcons.scale    = 0.75
-
-
--- scales an element relative to current screen size
--- (the element gets smaller as the screen size increases)
--- this exists mostly for the companion list which does this anyway
--- results will vary depending on the element
-Dart.config.ammoWheel.autoscale      = false
-Dart.config.bhs.autoscale            = false
-Dart.config.companionList.autoscale  = true
-Dart.config.companionWheel.autoscale = false
-Dart.config.inventory.autoscale      = false
-Dart.config.messages.autoscale       = false
-Dart.config.minimap.autoscale        = false
-Dart.config.patches.autoscale        = false
-Dart.config.statusIcons.autoscale    = false
+config.ammoWheel.scale      = 1
+config.bhs.scale            = 1
+config.companionList.scale  = 1
+config.companionWheel.scale = 1
+config.inventory.scale      = 1 -- scales icons
+config.minimap.scale        = 1
+config.messages.scale       = 1
+config.patches.scale        = 1.25 -- scales patches
+config.statusIcons.scale    = 1
 
 
 -- scales the space between inventory icons
 -- I've seen screwy things like missing icons so use with caution
 -- I've you have icon issues you can try making this '0'
-Dart.config.inventory.padScale = 1
+config.inventory.padScale = 1
+
+
+-- move the minimap to another part of the screen
+-- e.g. {"CENTER", "BOTTOM"}
+config.minimap.align = nil
 
 
 -- adjust the transparency of the minimap (0-255)
 -- nil value will use the value in the XML file
-Dart.config.minimap.alpha = nil
+config.minimap.alpha = nil
 
 
 -- move the minimap clock by {x, y} pixels
-Dart.config.minimap.clockOffset = {0, 0}
+config.minimap.clockOffset = {0, 0}
 
 
 -- use cicular ammo wheel (instead of the triangle)
 -- probably better to turn off if you're using a mod that skins the UI/wheel
-Dart.config.ammoWheel.roundWheel = true
+config.ammoWheel.roundWheel = true
+
+
+-- controls the spacing between status icons
+config.statusIcons.spacing = 2

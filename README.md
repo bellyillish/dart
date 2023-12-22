@@ -18,7 +18,6 @@ DART is customizable via a config file that allows you to move and scale various
 ## Installation:
 Install with MO2. Choose "00 Dart Core (Required)" plus any/all fixes during installation. The safest place to install is at the bottom of load order, but in most cases priority won't matter.
 
-- Get v2.0.1 here: https://discord.com/channels/912320241713958912/1169311822139105380/1184663998109597778
 - GitHub: https://github.com/bellyillish/dart
 - Discord: https://discord.com/channels/912320241713958912/1169311822139105380/1169311822139105380
 

@@ -1,7 +1,7 @@
 local Module = dart_module
 
 
-local mod = "COMPANION_LIST"
+local mod = "companionList"
 local log = Module.createLogger(mod)
 
 
@@ -12,12 +12,11 @@ else
 
   local InitControls = axr_companions.UICompanionList.InitControls
 
-
-  -- utils_xml.correct_ratio() seems to do more harm than good in general, but
-  -- here it's also not consistently implemented, making it damn near impossible
-  -- to do what we need, disabling it makes things so much easier
+  -- utils_xml.correct_ratio() seems to do more harm than good and is also
+  -- not consistently implemented, making it damn near impossible  to do
+  -- what we need, disabling it makes things much easier
   function axr_companions.UICompanionList:InitControls()
-    local correctRatio = utils_xml.correct_ratio
+    local correctRatio      = utils_xml.correct_ratio
     utils_xml.correct_ratio = function() end
 
     InitControls(self)
