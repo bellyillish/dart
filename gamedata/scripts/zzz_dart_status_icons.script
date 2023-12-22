@@ -1,62 +1,72 @@
+local Dart   = dart_core
 local Module = dart_module
+local Utils  = dart_utils
 
 
-local mod = "STATUS_ICONS"
-local log = Module.createLogger(mod)
+local mod    = "statusIcons"
+local log    = Module.createLogger(mod)
+local config = Dart.config.statusIcons
+local state  = Dart.state.statusIcons
 
 
 if Module.isDisabled(mod) then
   log("Disabled, skipping UIIndicators:InitControls()")
 else
-  log("Overriding UIIndicators:InitControls()")
+  log("Monkey patching UIIndicators:InitControls()")
 
+  local InitControls = actor_status.UIIndicators.InitControls
 
-  -- strips the ratio and scale adjustments out of the base method and
-  -- forces it to respect the values defined in the XML
-  function alticons.actor_status.UIIndicators:InitControls()
-    self.offset     = 2
-    self.timeOffset = 15
+  -- The base function is filled with hard-coded values that can't easily be
+  -- changed, and that makes fixing the status icons unnecessarily hard, so we
+  -- have a mess to clean up and need to get creative to do it
+  function actor_status.UIIndicators:InitControls()
+    local getHudXML = utils_xml.get_hud_xml
 
-    local xml = utils_xml.get_hud_xml()
+    -- The base function calls this after setting self.W and before initializing
+    -- the UI so it's the ideal place to do what we need
+    function utils_xml.get_hud_xml()
+      local hudXML = getHudXML()
+      local ratio  = Utils.getAspectRatioVs(state.xmlAspectRatio)
 
-    local time_xml = CScriptXmlInit()
-    time_xml:ParseFile("actor_menu.xml")
+      local iconWidth = tonumber(
+        hudXML:ReadAttribute("indicators:static", 0, "width")
+      )
 
-    self.dialog = xml:InitStatic("indicators", self)
-    self.dialog:Show(false)
-
-    for i = 1, size_table(actor_status.indicators) do
-      self.slot[i] = {
-        back_s    = xml:InitStatic("indicators:static", self.dialog),
-        back_f    = xml:InitStatic("indicators:flashing", self.dialog),
-        icon_s    = xml:InitStatic("indicators:static", self.dialog),
-        icon_f    = xml:InitStatic("indicators:flashing", self.dialog),
-        xcvb_time = time_xml:InitTextWnd("quick_slot3_text", self),
-      }
-
-      for _, el in pairs(self.slot[i]) do
-        el:SetWndPos(vector2():set(
-          (el:GetWidth() + self.offset) * (self.mirroed and 1 - i or i - 1),
-          0
-        ))
+      -- force self.W to respect the XML value
+      if iconWidth then
+        self.W = iconWidth * alticons.size_adjust / ratio
       end
 
-      local dialog_pos  = self.dialog:GetWndPos()
-      local icon_pos    = self.slot[i].icon_f:GetWndPos()
-      local icon_width  = self.slot[i].icon_f:GetWidth()
-      local self_height = self.slot[i].xcvb_time:GetHeight()
+      -- allow a custom spacing value
+      self.offset = config.spacing * alticons.size_adjust / ratio
 
-      self.slot[i].xcvb_time:SetWndPos(vector2():set(
-        dialog_pos.x + icon_pos.x,
-        dialog_pos.y + icon_pos.y - self.timeOffset
-      ))
+      local InitStatic = hudXML.InitStatic
 
-      self.slot[i].xcvb_time:SetWndSize(vector2():set(
-        icon_width,
-        self_height
-      ))
+      -- Intercept the first call to xml:InitStatic(), which should be the call
+      -- that initializes self.dialog. We need its instance to prevent the base
+      -- function from "nudging" it with problematic hard-coded values
+      function hudXML:InitStatic(path, instance)
+        self.InitStatic = InitStatic
 
-      self.slot[i].xcvb_time:SetText("")
+        local dialog    = self:InitStatic(path, instance)
+        local SetWndPos = dialog.SetWndPos
+
+        -- Disable the first call to dialog:SetWndPos() to prevent the base
+        -- function from "nudging" {x, y} so that it respects the XML
+        function dialog:SetWndPos()
+          self.SetWndPos = SetWndPos
+        end
+
+        return dialog
+      end
+
+      return hudXML
     end
+
+    -- call the base function
+    InitControls(self)
+
+    -- restore original functionality
+    utils_xml.get_hud_xml = getHudXML
   end
 end

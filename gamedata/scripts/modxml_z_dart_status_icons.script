@@ -1,41 +1,55 @@
-local Dart   = Dart_core
-local Utils  = Dart_utils
+local Dart   = dart_core
 local Module = dart_module
 
 
-local mod    = "STATUS_ICONS"
+local mod    = "statusIcons"
 local config = Dart.config.statusIcons
+local state  = Dart.state.statusIcons
 
 
-function parseUIHud(DXML)
-  local indicators = DXML:query("indicators")[1]
+function parseUIHud(XML)
+  local indicators = XML:query("indicators")[1]
   if not indicators then
     return
   end
 
-  DXML:scaleElement(indicators, {
-    bounds    = DXML:getElementBounds(indicators),
-    safezone  = config.safezone,
-    anchor    = config.anchor,
-    offset    = config.offset,
-    scale     = config.scale,
-    autoscale = config.autoscale,
-  })
+  state.xmlAspectRatio = XML.aspectRatio
 
-  DXML:safeIterate(indicators, function(child)
-    DXML:scaleElement(child, {
-      scale     = config.scale,
-      autoscale = config.autoscale,
-    })
+  local scaleSettings = {
+    bounds   = XML:getBounds(indicators),
+    safezone = config.safezone,
+    anchor   = config.anchor,
+    offset   = config.offset,
+    scale    = config.scale,
+  }
 
-    -- hack for UI mods that pass ui_hud_16 or ui_hud_21
-    DXML:safeSetAttrs(child, function(attrs)
-      return {width = attrs.width / (DXML.aspectRatio / Dart.ratio4x3)}
+  XML:correctX(indicators, scaleSettings)
+  XML:correctY(indicators, scaleSettings)
+
+  -- width is already aspect-ratio corrected, so we just need
+  -- to account for the custom scale
+  XML:safeSetAttrs(indicators, function(attrs)
+    return {
+      width  = attrs.width  * config.scale,
+      height = attrs.height * config.scale,
+    }
+  end)
+
+  XML:safeIterate(indicators, function(child)
+    XML:correctX(child, {scale = config.scale})
+    XML:correctY(child, {scale = config.scale})
+
+    -- width is already aspect-ratio correct here as well
+    XML:safeSetAttrs(child, function(attrs)
+      return {
+        width  = attrs.width  * config.scale,
+        height = attrs.height * config.scale,
+      }
     end)
   end)
 end
 
 
 function on_xml_read()
-  Module.registerModule(mod, "ui\\ui_hud", parseUIHud)
+  Module.registerModule(mod, "ui_hud", parseUIHud)
 end

@@ -1,19 +1,19 @@
-local Dart     = Dart_core
-local Utils    = dart_utils
-local DartDXML = dart_dxml
+local Dart  = dart_core
+local Utils = dart_utils
+local DXML  = dart_dxml
 
 
--- check if a DART module is disabled (placeholder)
+-- (placeholder) check if a DART module is disabled
 function isDisabled(mod)
   return false
 end
 
 
 -- create a module logger
-  -- suppresses repeated logs after [config.loglimit] times
-function createLogger(module)
-  module = (module and module ~= "DART")
-    and "DART:" .. module
+-- suppresses repeated logs after [config.logLimit] times
+function createLogger(mod)
+  mod = (mod and string.upper(mod) ~= "DART")
+    and "DART:" .. mod
     or  "DART"
 
   local calls = {}
@@ -25,17 +25,17 @@ function createLogger(module)
       calls[message] = 0
     end
 
-    if calls[message] >= Dart.config.loglimit then
+    if calls[message] >= Dart.config.logLimit then
       return
     end
 
     calls[message] = calls[message] + 1
 
-    local note = calls[message] == Dart.config.loglimit
+    local note = calls[message] == Dart.config.logLimit
       and " (suppressing)"
       or  ""
 
-    printf("[%s] %s%s", module, message, note)
+    printf("[%s] %s%s", mod, message, note)
   end
 
   function clear()
@@ -46,20 +46,20 @@ function createLogger(module)
 end
 
 
--- create a module DXML cacher
-function createCache(module)
+-- create a module XML cacher
+function createCache(mod)
   local cache = {}
 
-  local function has(filename)
-    return cache[filename] ~= nil
+  local function has(path)
+    return cache[path] ~= nil
   end
 
-  local function set(filename, DXML)
-    cache[filename] = DXML.xml_table.kids
+  local function set(path, XML)
+    cache[path] = XML
   end
 
-  local function apply(filename, DXML)
-    DXML.xml_table.kids = cache[filename]
+  local function apply(path, XML)
+    DXML.transferXML(cache[path], XML)
   end
 
   local function clear()
@@ -67,8 +67,8 @@ function createCache(module)
   end
 
   return {
-    has = has,
-    set = set,
+    has   = has,
+    set   = set,
     apply = apply,
     clear = clear,
   }
@@ -76,50 +76,62 @@ end
 
 
 -- create a module's on_xml_read callback
-function createXMLCallback(mod, basepath, ...)
+function createXMLCallback(mod, targetAlias, ...)
   local log   = createLogger(mod)
   local cache = createCache(mod)
   local fns   = {...}
 
-  return function(path, DXML)
-    if not DartDXML.matchesPath(path, basepath) then
+  return function(path, XML)
+    local _, alias = DXML.splitPath(path)
+
+    if targetAlias ~= alias then
       return
     end
 
     local replacement = Dart.xmlFileReplacements[path]
 
     if replacement then
-      log("Replacing %s", path)
-      return DartDXML.replaceWithFile(DXML, replacement)
+      log("Replacing %s with %s", path, replacement)
+
+      if DXML.requestReplacement(XML, replacement) then
+        log("Done with %s", path)
+        return
+      else
+        log("Unable to replace %s with %s", path, replacement)
+      end
     end
 
     if cache.has(path) then
-      log("Using cache for %s", path)
-      return cache.apply(path, DXML)
+      return cache.apply(path, XML)
     end
 
-    DartDXML.extendXMLObject(DXML, path)
+    DXML.extendXMLObject(XML, path)
 
-    log("Parsing %s (as %s)", path, Utils.getAspectRatioLabel(DXML.aspectRatio))
+    local ratioLabel = Utils.getAspectRatioLabel(XML.aspectRatio)
     local clock = os.clock()
 
     for _, fn in ipairs(fns) do
-      fn(DXML)
+      fn(XML)
     end
 
-    log("Parsed %s in %.3fs", path, os.clock() - clock)
-    cache.set(path, DXML)
+    log("Parsed %s (%s) in %.3fs", path, ratioLabel, os.clock() - clock)
+    cache.set(path, XML)
+
+    if DXML.getQueuedReplacement(path) then
+      DXML.settleReplacement(XML, path)
+    end
   end
 end
 
 
 -- create and register a module's on_xml_read callback
-function registerModule(mod, basepath, ...)
+function registerModule(mod, alias, ...)
   if isDisabled(mod) then
-    return createLogger(mod)("Disabled, skipping %s", basepath)
+    createLogger(mod)("Disabled, skipping %s", alias)
+    return
   end
 
   RegisterScriptCallback("on_xml_read",
-    createXMLCallback(mod, basepath, ...)
+    createXMLCallback(mod, alias, ...)
   )
 end

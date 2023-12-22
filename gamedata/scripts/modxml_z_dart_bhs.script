@@ -1,115 +1,109 @@
-local Dart   = Dart_core
+local Dart   = dart_core
 local Module = dart_module
 
 
-local mod    = "BHS"
+local mod    = "bhs"
 local config = Dart.config.bhs
+local state  = Dart.state.bhs
 
 
 function getScaleSettings()
   return {
-    bounds    = Dart.state.bhsBounds,
-    anchor    = config.anchor,
-    safezone  = config.safezone,
-    offset    = config.offset,
-    scale     = config.scale,
-    autoscale = config.autoscale,
+    bounds   = state.bounds,
+    anchor   = config.anchor,
+    safezone = config.safezone,
+    offset   = config.offset,
+    scale    = config.scale,
   }
 end
 
 
-function isBHSElement(DXML, element)
-  if not DXML:safeIsElement(element) then
+function isBHSElement(XML, element)
+  if not XML:safeIsElement(element) then
     return false
   end
 
-  local name = DXML:getElementName(element)
+  local name = XML:getElementName(element)
   return name:match("^bhs_") or name:match("^body_health_")
 end
 
 
-function parseUICustomMsgs(DXML)
-  local container = DXML:query("body_health_system")[1]
-  Dart.state.bhsBounds = DXML:getElementBounds(container)
+function parseUICustomMsgs(XML)
+  local container = XML:query("body_health_system")[1]
+  state.bounds    = XML:getBounds(container)
 
-  DXML:safeIterate(function(child)
-    if isBHSElement(DXML, child) then
-      DXML:scaleElement(child, getScaleSettings())
+  XML:safeIterate(function(child)
+    if isBHSElement(XML, child) then
+      XML:correctElement(child, getScaleSettings())
     end
   end)
 end
 
 
-function parseUIBodyHealth(DXML)
-  DXML:safeIterate(function(child)
-    if isBHSElement(DXML, child) then
-      DXML:scaleElement(child, {
-        scale     = config.scale,
-        autoscale = config.autoscale,
-      })
+function parseUIBodyHealth(XML)
+  XML:safeIterate(function(child)
+    if isBHSElement(XML, child) then
+      XML:correctElement(child, {scale = config.scale})
     end
   end)
 end
 
 
-function parseMaingame(DXML)
-  local hudStates = DXML:query("hud_states")[1]
+function parseMaingame(XML)
+  local hudStates = XML:query("hud_states")[1]
   if not hudStates then
     return
   end
 
-  local psybar   = DXML:query("progress_bar_psy", hudStates)[1]
-  local progress = DXML:query("progress", psybar)[1]
+  local psybar   = XML:query("progress_bar_psy", hudStates)[1]
+  local progress = XML:query("progress", psybar)[1]
 
   if psybar then
     -- slight nudge for better alignment
-    DXML:safeSetAttrs(psybar, function(attrs)
+    XML:safeSetAttrs(psybar, function(attrs)
       return {height = attrs.height + 1, width = attrs.width - 1}
     end)
   end
 
   if progress then
-    DXML:safeSetAttrs(progress, function(attrs)
+    XML:safeSetAttrs(progress, function(attrs)
       return {stretch = 1}
     end)
   end
 
-  DXML:safeIterate(hudStates, function(child)
-    DXML:scaleElement(child, getScaleSettings())
+  XML:safeIterate(hudStates, function(child)
+    XML:correctElement(child, getScaleSettings())
   end)
 end
 
 
-function parseSidHudComponent(DXML)
-  local sidhud    = DXML:query("sidhud")[1]
-  local radHealth = DXML:query("sidhud > rad_health")[1]
-  local value     = DXML:query("sidhud > rad_health > value")[1]
+function parseSidHudComponent(XML)
+  local sidhud    = XML:query("sidhud")[1]
+  local radHealth = XML:query("sidhud > rad_health")[1]
+  local value     = XML:query("sidhud > rad_health > value")[1]
 
   if not (sidhud and radHealth and value) then
     return
   end
 
-  DXML:scaleElement(sidhud, getScaleSettings())
+  XML:correctElement(sidhud, getScaleSettings())
 
-  DXML:scaleElement(radHealth, {
-    scale     = config.scale,
-    autoscale = config.autoscale,
+  XML:correctElement(radHealth, {
+    scale = config.scale,
   })
 
-  DXML:scaleElement(value, {
-    scale     = config.scale,
-    autoscale = config.autoscale,
+  XML:correctElement(value, {
+    scale = config.scale,
   })
 end
 
 
 function on_xml_read()
-  Module.registerModule(mod, "ui\\ui_custom_msgs", parseUICustomMsgs)
-  Module.registerModule(mod, "ui\\ui_body_health", parseUIBodyHealth)
-  Module.registerModule(mod, "ui\\maingame", parseMaingame)
-  Module.registerModule(mod, "ui\\ui_sidhud_component", parseSidHudComponent)
+  Module.registerModule(mod, "ui_custom_msgs", parseUICustomMsgs)
+  Module.registerModule(mod, "ui_body_health", parseUIBodyHealth)
+  Module.registerModule(mod, "maingame", parseMaingame)
+  Module.registerModule(mod, "ui_sidhud_component", parseSidHudComponent)
 
-  if not Dart.state.bhsBounds then
-    CScriptXmlInit():ParseFile("ui_custom_msgs.xml")
-  end
+  -- ensure state.bounds is populated first
+  CScriptXmlInit():ParseFile("ui_custom_msgs.xml")
 end
