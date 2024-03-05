@@ -103,7 +103,4 @@ function on_xml_read()
   Module.registerModule(mod, "ui_body_health", parseUIBodyHealth)
   Module.registerModule(mod, "maingame", parseMaingame)
   Module.registerModule(mod, "ui_sidhud_component", parseSidHudComponent)
-
-  -- ensure state.bounds is populated first
-  CScriptXmlInit():ParseFile("ui_custom_msgs.xml")
 end

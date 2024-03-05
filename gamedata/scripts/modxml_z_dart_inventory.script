@@ -14,7 +14,4 @@ end
 
 function on_xml_read()
   Module.registerModule(mod, "ui_inventory", parseUIInventory)
-
-  -- make sure XML has been parsed first
-  CScriptXmlInit():ParseFile("ui_inventory.xml")
 end
