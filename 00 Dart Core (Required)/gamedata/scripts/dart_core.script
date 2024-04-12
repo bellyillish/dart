@@ -1,91 +1,11 @@
--- default config
-config = {
-  logLimit = 10,
-  safezone = 0,
+local MCM = dart_mcm
 
-  ammoWheel = {
-    anchor     = {"CENTER", "CENTER"},
-    offset     = {0, 0},
-    scale      = 1,
-    roundWheel = true,
-  },
 
-  bhs = {
-    anchor    = {"LEFT", "BOTTOM"},
-    offset    = {8, 0},
-    safezone  = true,
-    scale     = 1,
-  },
+-- default values when mcm is active
+config = {logLimit = 10, safezone = 0}
 
-  companionList = {
-    anchor    = {"RIGHT", "BOTTOM"},
-    offset    = {-12, 96},
-    safezone  = true,
-    scale     = 1,
-  },
-
-  companionWheel = {
-    anchor    = {"CENTER", "CENTER"},
-    offset    = {0, 0},
-    scale     = 1,
-  },
-
-  inventory = {
-    scale     = 1,
-    padScale  = 1,
-  },
-
-  markers = {},
-
-  messages = {
-    anchor    = {"LEFT", "BOTTOM"},
-    offset    = {0, -12},
-    safezone  = true,
-    scale     = 1,
-  },
-
-  minimap = {
-    anchor      = {"RIGHT", "BOTTOM"},
-    offset      = {0, 0},
-    safezone    = true,
-    scale       = 1,
-    align       = nil,
-    alpha       = nil,
-    clockOffset = {0, 0},
-  },
-
-  patches = {
-    anchor    = {"LEFT", "BOTTOM"},
-    offset    = {12, 0},
-    safezone  = true,
-    scale     = 1.25,
-  },
-
-  scopes = {},
-
-  statusIcons = {
-    anchor    = {"LEFT", "BOTTOM"},
-    offset    = {-4, -8},
-    safezone  = true,
-    scale     = 1,
-    spacing   = 2,
-  },
-}
-
--- holds state to share data across files
-state = {
-  ammoWheel      = {},
-  bhs            = {},
-  companionList  = {},
-  companionWheel = {},
-  inventory      = {},
-  markers        = {},
-  messages       = {},
-  minimap        = {},
-  patches        = {},
-  scopes         = {},
-  statusIcons    = {},
-}
+-- when modules need to share values at runtime
+state = {}
 
 -- consts
 baseWidth  = 1024
@@ -125,13 +45,11 @@ xmlAspectRatios = {
   ["ui\\ui_hud.xml"] = ratio4x3,
 }
 
-
 -- replace files on left with ones on right
 xmlFileReplacements = {
   ["ui\\zone_map_21.xml"] = "ui\\zone_map_16.xml",
   ["ui\\scopes_21.xml"]   = "ui\\scopes_16.xml",
 }
-
 
 -- template for missing left/right scope fillers
 scopeFillerTemplate = [[

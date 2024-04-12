@@ -2,12 +2,10 @@ local Dart   = dart_core
 local Module = dart_module
 
 
-local mod    = "patches"
-local config = Dart.config.patches
-local state  = Dart.state.patches
+local mod = "patches"
 
 
-function parseUIPatches(XML)
+function parseUIPatches(XML, config, state)
   local patch = XML:query("patch_stalker")[1]
   local name1 = XML:query("name")[1]
   local rank1 = XML:query("rank")[1]

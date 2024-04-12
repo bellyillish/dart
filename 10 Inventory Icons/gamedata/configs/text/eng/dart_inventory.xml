@@ -1,0 +1,29 @@
+<string_table>
+  <string id="ui_mcm_dart_inventory_title">
+    <text>Inventory Settings</text>
+  </string>
+
+  <string id="ui_mcm_menu_dart_inventory">
+    <text>Inventory</text>
+  </string>
+
+  <string id="ui_mcm_dart_inventory_scale">
+    <text>Icon Scale</text>
+  </string>
+
+  <string id="ui_mcm_dart_inventory_scale_desc">
+    <text>Adjust the size of icons. Values greater than 1 make them larger. Values less than 1 make them smaller.</text>
+  </string>
+
+  <string id="ui_mcm_dart_inventory_padScale">
+    <text>Icon Spacing Scale</text>
+  </string>
+
+  <string id="ui_mcm_dart_inventory_padScale_desc">
+    <text>Adjust the space between icons. Values greater than 1 move them farther apart. Values less than one move them closer together.</text>
+  </string>
+
+  <string id="ui_mcm_dart_inventory_padScale_note">
+    <text>NOTE: Try setting this to 0 if inventory icons appear to be missing or cut off.</text>
+  </string>
+</string_table>

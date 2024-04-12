@@ -3,9 +3,7 @@ local Module = dart_module
 local Utils  = dart_utils
 
 
-local mod    = "scopes"
-local log    = Module.createLogger(mod)
-local config = Dart.config.scopes
+local mod = "scopes"
 
 
 -- we're not as concerned about xmlAspectRatio here because all known

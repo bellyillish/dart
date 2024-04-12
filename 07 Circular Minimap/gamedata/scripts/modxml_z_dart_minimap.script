@@ -3,14 +3,13 @@ local Utils  = dart_utils
 local Module = dart_module
 
 
-local mod    = "minimap"
-local config = Dart.config.minimap
+local mod = "minimap"
 
 
 -- We can't use XML:correctElement() because:
---   - minimap elements are expressed in dumb units for no reason
---   - minimap element widths are aleady adjusted for aspect ratio
-function parseZoneMap(XML)
+--   a. minimap elements are expressed in dumb units for no reason
+--   b. minimap element widths are aleady adjusted for aspect ratio
+function parseZoneMap(XML, config)
   local compass = XML:query("minimap > compass")[1]
   local frame   = XML:query("minimap > level_frame")[1]
   local bg      = XML:query("minimap > background")[1]
@@ -19,8 +18,6 @@ function parseZoneMap(XML)
   local compassAttrs = XML:safeGetAttrs(compass)
   local frameAttrs   = XML:safeGetAttrs(frame)
   local bgAttrs      = XML:safeGetAttrs(bg)
-
-  local scale = config.scale
 
   local scaleSettings = Utils.merge(config, {
     bounds = {

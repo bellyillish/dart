@@ -3,9 +3,8 @@ local Utils  = dart_utils
 local Module = dart_module
 
 
-local mod    = "markers"
-local log    = Module.createLogger(mod)
-local config = Dart.config.markers
+local mod = "markers"
+local log = Module.createLogger(mod)
 
 
 local MARKER_INDEX, TOUCHED = {}, {}

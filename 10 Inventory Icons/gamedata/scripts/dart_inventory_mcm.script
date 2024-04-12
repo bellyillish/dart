@@ -1,0 +1,75 @@
+local Dart  = dart_core
+local MCM   = dart_mcm
+local Utils = dart_utils
+
+
+local config = {
+  scale    = 0.75,
+  padScale = 0,
+}
+
+
+Dart.config.inventory = config
+Dart.state.inventory  = {}
+
+
+function mcmOnConfig(mcmConfig)
+  local scale    = ui_mcm.get("dart/dart_inventory/scale")
+  local padScale = ui_mcm.get("dart/dart_inventory/padScale")
+
+  if scale then
+    mcmConfig.inventory.scale = scale
+  end
+
+  if padScale then
+    mcmConfig.inventory.padScale = padScale
+  end
+end
+
+
+function mcmOnLoad(options)
+  options[10] = {
+    id = "dart_inventory",
+    sh = true,
+    gr = {
+      MCM.getTitle(),
+      MCM.getSubtitle({text = "ui_mcm_dart_inventory_title"}),
+      MCM.getScaleField({hint = "dart_inventory_scale", def = config.scale}),
+      MCM.getLine(),
+      MCM.getScaleField({
+        id = "padScale",
+        hint = "dart_inventory_padScale",
+        min = 0,
+        max = 16,
+        def = config.padScale
+      }),
+      MCM.getNote({text = "ui_mcm_dart_inventory_padScale_note"}),
+    }
+  }
+end
+
+
+function onPreRefresh()
+  if ui_inventory.GUI then
+    ui_inventory.GUI:actor_on_net_destroy()
+  end
+end
+
+
+function onPostRefresh()
+  if zzz_rax_sortingplus_mcm then
+    zzz_rax_sortingplus_mcm.actor_on_first_update()
+  end
+  if zz_ui_inventory_better_stats_bars then
+    zz_ui_inventory_better_stats_bars.on_option_change()
+  end
+  if custom_functor_autoinject then
+    custom_functor_autoinject.process_queue()
+  end
+end
+
+
+RegisterScriptCallback("on_dart_mcm_load", mcmOnLoad)
+RegisterScriptCallback("on_dart_mcm_config", mcmOnConfig)
+RegisterScriptCallback("on_dart_pre_refresh", onPreRefresh)
+RegisterScriptCallback("on_dart_post_refresh", onPostRefresh)

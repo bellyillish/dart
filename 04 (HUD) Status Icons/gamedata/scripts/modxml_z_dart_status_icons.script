@@ -2,12 +2,10 @@ local Dart   = dart_core
 local Module = dart_module
 
 
-local mod    = "statusIcons"
-local config = Dart.config.statusIcons
-local state  = Dart.state.statusIcons
+local mod = "statusIcons"
 
 
-function parseUIHud(XML)
+function parseUIHud(XML, config, state)
   local indicators = XML:query("indicators")[1]
   if not indicators then
     return

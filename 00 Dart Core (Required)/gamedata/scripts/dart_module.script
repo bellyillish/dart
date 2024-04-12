@@ -3,14 +3,30 @@ local Utils = dart_utils
 local DXML  = dart_dxml
 
 
--- (placeholder) check if a DART module is disabled
-function isDisabled(mod)
-  return false
+-- config() cache
+local CURRENT_CONFIG = nil
+
+
+-- merges Dart.config with MCM values and caches
+function config(mod)
+  if not CURRENT_CONFIG then
+    CURRENT_CONFIG = _G.dup_table(Dart.config)
+    SendScriptCallback("on_dart_mcm_config", CURRENT_CONFIG)
+  end
+
+  return mod
+    and CURRENT_CONFIG[mod]
+    or  CURRENT_CONFIG
 end
 
 
--- create a module logger
--- suppresses repeated logs after [config.logLimit] times
+-- does nothing special at the moment
+function state(mod)
+  return mod and Dart.state[mod] or Dart.state
+end
+
+
+-- spam-supressing logger
 function createLogger(mod)
   mod = (mod and string.upper(mod) ~= "DART")
     and "DART:" .. mod
@@ -18,7 +34,7 @@ function createLogger(mod)
 
   local calls = {}
 
-  function log(formatter, ...)
+  local function log(formatter, ...)
     local message = string.format(formatter, ...)
 
     if not calls[message] then
@@ -35,18 +51,19 @@ function createLogger(mod)
       and " (suppressing)"
       or  ""
 
-    printf("[%s] %s%s", mod, message, note)
+    printdbg("[%s] %s%s", mod, message, note)
   end
 
-  function clear()
+  local function clear()
     calls = {}
   end
 
+  RegisterScriptCallback("on_dart_pre_refresh", clear)
   return log, clear
 end
 
 
--- create a module XML cacher
+-- per-module cache of parsed DXML
 function createCache(mod)
   local cache = {}
 
@@ -66,6 +83,8 @@ function createCache(mod)
     cache = {}
   end
 
+  RegisterScriptCallback("on_dart_pre_refresh", clear)
+
   return {
     has   = has,
     set   = set,
@@ -75,15 +94,18 @@ function createCache(mod)
 end
 
 
--- create a module's on_xml_read callback
 function createXMLCallback(mod, targetAlias, ...)
   local log   = createLogger(mod)
   local cache = createCache(mod)
   local fns   = {...}
 
   return function(path, XML)
-    local _, alias = DXML.splitPath(path)
+    -- Workaround for PAW parsing XML while mcm is still gathering
+    if ui_mcm and ui_mcm.is_gathering() then
+      return
+    end
 
+    local _, alias = DXML.splitPath(path)
     if targetAlias ~= alias then
       return
     end
@@ -108,10 +130,10 @@ function createXMLCallback(mod, targetAlias, ...)
     DXML.extendXMLObject(XML, path)
 
     local ratioLabel = Utils.getAspectRatioLabel(XML.aspectRatio)
-    local clock = os.clock()
+    local clock      = os.clock()
 
     for _, fn in ipairs(fns) do
-      fn(XML)
+      fn(XML, config(mod), state(mod))
     end
 
     log("Parsed %s (%s) in %.3fs", path, ratioLabel, os.clock() - clock)
@@ -124,14 +146,74 @@ function createXMLCallback(mod, targetAlias, ...)
 end
 
 
--- create and register a module's on_xml_read callback
 function registerModule(mod, alias, ...)
-  if isDisabled(mod) then
-    createLogger(mod)("Disabled, skipping %s", alias)
-    return
-  end
-
   RegisterScriptCallback("on_xml_read",
     createXMLCallback(mod, alias, ...)
   )
+end
+
+
+-- refresh UI
+function refresh()
+  DestroyAll_UI()
+  SendScriptCallback("on_dart_pre_refresh")
+
+  CURRENT_CONFIG = nil
+  game.reload_ui_xml()
+
+  SendScriptCallback("on_dart_post_refresh")
+end
+
+
+-- refresh UI via options change if the resolution isn't changing
+function onOptionChange()
+  if Utils.getDeviceResolution() == Utils.getResolutionOption() then
+    refresh()
+  end
+end
+
+
+-- resolution from previous on_change event
+local LAST_RESOLUTION = nil
+
+
+-- refresh UI via resolution change only if it *actually* changed
+function onResolutionChange()
+  local resolution = Utils.getDeviceResolution()
+
+  if resolution ~= LAST_RESOLUTION then
+    LAST_RESOLUTION = resolution
+    refresh()
+  end
+end
+
+
+-- refresh via keybind
+-- closes PDA if open instead to avoid stuck UI
+function onKeyRelease(key)
+  if not ui_mcm then
+    return
+  end
+
+  local refreshKey = ui_mcm.get("dart/dart_core/refreshKey")
+
+  if
+    refreshKey > -1
+    and key == refreshKey
+    and not hide_hud_pda()
+  then
+    refresh()
+  end
+end
+
+
+AddScriptCallback("on_dart_mcm_config")
+AddScriptCallback("on_dart_pre_refresh")
+AddScriptCallback("on_dart_post_refresh")
+
+RegisterScriptCallback("on_option_change", onOptionChange)
+RegisterScriptCallback("on_screen_resolution_changed", onResolutionChange)
+
+function on_game_start()
+  RegisterScriptCallback("on_key_release", onKeyRelease)
 end

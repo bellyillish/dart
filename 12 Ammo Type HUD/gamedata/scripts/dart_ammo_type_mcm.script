@@ -1,0 +1,60 @@
+local Dart  = dart_core
+local MCM   = dart_mcm
+local Utils = dart_utils
+
+
+local config = {
+  anchor   = {"LEFT", "BOTTOM"},
+  offset   = {28, -10},
+  safezone = true,
+  scale    = 1,
+}
+
+
+Dart.config.ammoType = config
+Dart.state.ammoType  = {}
+
+
+function mcmOnConfig(mcmConfig)
+  local offsetX = ui_mcm.get("dart/dart_ammoType/offsetX")
+  local offsetY = ui_mcm.get("dart/dart_ammoType/offsetY")
+
+  mcmConfig.ammoType.offset = {
+    offsetX or config.offset[1],
+    offsetY or config.offset[2],
+  }
+end
+
+
+function mcmOnLoad(options)
+  options[12] = {
+    id = "dart_ammoType",
+    sh = true,
+    gr = {
+      MCM.getTitle(),
+      MCM.getSubtitle({text = "ui_mcm_dart_ammoType_title"}),
+      MCM.getOffsetXField({def = config.offset[1]}),
+      MCM.getOffsetYField({def = config.offset[2]}),
+    }
+  }
+end
+
+
+function onPreRefresh()
+  if rax_ammo_type then
+    rax_ammo_type.deactivate_hud()
+  end
+end
+
+
+function onPostRefresh()
+  if rax_ammo_type then
+    rax_ammo_type.activate_hud()
+  end
+end
+
+
+RegisterScriptCallback("on_dart_mcm_load", mcmOnLoad)
+RegisterScriptCallback("on_dart_mcm_config", mcmOnConfig)
+RegisterScriptCallback("on_dart_pre_refresh", onPreRefresh)
+RegisterScriptCallback("on_dart_post_refresh", onPostRefresh)

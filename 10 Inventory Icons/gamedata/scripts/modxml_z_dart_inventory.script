@@ -2,12 +2,10 @@ local Dart   = dart_core
 local Module = dart_module
 
 
-local mod    = "inventory"
-local config = Dart.config.inventory
-local state  = Dart.state.inventory
+local mod = "inventory"
 
 
-function parseUIInventory(XML)
+function parseUIInventory(XML, _, state)
   state.xmlAspectRatio = XML.aspectRatio
 end
 

@@ -2,13 +2,13 @@
 #define GASMASK_COMMON_H
 
 /*
-	Gasmask overlay shader
+  Gasmask overlay shader
 
-	Credits: ZHC (visor reflection)
+  Credits: ZHC (visor reflection)
 
-	/////////////////
-	Anomaly Team 2020
-	/////////////////
+  /////////////////
+  Anomaly Team 2020
+  /////////////////
 */
 
 //Main gasmask textures

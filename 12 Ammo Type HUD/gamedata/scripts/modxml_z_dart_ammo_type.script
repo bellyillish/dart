@@ -1,0 +1,26 @@
+local Dart   = dart_core
+local Module = dart_module
+
+
+local mod = "ammoType"
+
+
+function parseRaxAmmoType(XML, config)
+  local ammo = XML:query("ammo")[1]
+  if not ammo then
+    return
+  end
+
+  XML:correctElement(ammo, {
+    bounds    = XML:getBounds(ammo),
+    anchor    = config.anchor,
+    offset    = config.offset,
+    safezone  = config.safezone,
+    scale     = config.scale,
+  })
+end
+
+
+function on_xml_read()
+  Module.registerModule(mod, "rax_ammo_type", parseRaxAmmoType)
+end

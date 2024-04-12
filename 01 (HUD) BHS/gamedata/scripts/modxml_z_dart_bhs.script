@@ -1,21 +1,9 @@
 local Dart   = dart_core
+local Utils  = dart_utils
 local Module = dart_module
 
 
-local mod    = "bhs"
-local config = Dart.config.bhs
-local state  = Dart.state.bhs
-
-
-function getScaleSettings()
-  return {
-    bounds   = state.bounds,
-    anchor   = config.anchor,
-    safezone = config.safezone,
-    offset   = config.offset,
-    scale    = config.scale,
-  }
-end
+local mod = "bhs"
 
 
 function isBHSElement(XML, element)
@@ -28,19 +16,21 @@ function isBHSElement(XML, element)
 end
 
 
-function parseUICustomMsgs(XML)
+function parseUICustomMsgs(XML, config, state)
   local container = XML:query("body_health_system")[1]
   state.bounds    = XML:getBounds(container)
 
+  local scaleSettings = Utils.merge(config, state)
+
   XML:safeIterate(function(child)
     if isBHSElement(XML, child) then
-      XML:correctElement(child, getScaleSettings())
+      XML:correctElement(child, scaleSettings)
     end
   end)
 end
 
 
-function parseUIBodyHealth(XML)
+function parseUIBodyHealth(XML, config)
   XML:safeIterate(function(child)
     if isBHSElement(XML, child) then
       XML:correctElement(child, {scale = config.scale})
@@ -49,7 +39,7 @@ function parseUIBodyHealth(XML)
 end
 
 
-function parseMaingame(XML)
+function parseMaingame(XML, config, state)
   local hudStates = XML:query("hud_states")[1]
   if not hudStates then
     return
@@ -71,13 +61,15 @@ function parseMaingame(XML)
     end)
   end
 
+  local scaleSettings = Utils.merge(config, state)
+
   XML:safeIterate(hudStates, function(child)
-    XML:correctElement(child, getScaleSettings())
+    XML:correctElement(child, scaleSettings)
   end)
 end
 
 
-function parseSidHudComponent(XML)
+function parseSidHudComponent(XML, config, state)
   local sidhud    = XML:query("sidhud")[1]
   local radHealth = XML:query("sidhud > rad_health")[1]
   local value     = XML:query("sidhud > rad_health > value")[1]
@@ -86,15 +78,11 @@ function parseSidHudComponent(XML)
     return
   end
 
-  XML:correctElement(sidhud, getScaleSettings())
+  local scaleSettings = Utils.merge(config, state)
 
-  XML:correctElement(radHealth, {
-    scale = config.scale,
-  })
-
-  XML:correctElement(value, {
-    scale = config.scale,
-  })
+  XML:correctElement(sidhud, scaleSettings)
+  XML:correctElement(radHealth, {scale = config.scale})
+  XML:correctElement(value, {scale = config.scale})
 end
 
 

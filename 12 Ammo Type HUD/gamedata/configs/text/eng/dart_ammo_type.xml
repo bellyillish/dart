@@ -1,0 +1,9 @@
+<string_table>
+  <string id="ui_mcm_dart_ammoType_title">
+    <text>Ammo Type HUD Settings</text>
+  </string>
+
+  <string id="ui_mcm_menu_dart_ammoType">
+    <text>Ammo Type HUD</text>
+  </string>
+</string_table>

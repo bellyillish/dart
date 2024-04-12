@@ -3,10 +3,8 @@ local Utils  = dart_utils
 local Module = dart_module
 
 
-local mod    = "inventory"
-local log    = Module.createLogger(mod)
-local config = Dart.config.inventory
-local state  = Dart.state.inventory
+local mod = "inventory"
+Module.createLogger(mod)("Monkey patching UICellContainer:InitControls()")
 
 
 -- only auto-resize these container IDs (just a best guess)
@@ -21,40 +19,37 @@ function shouldAutoResize(container)
 end
 
 
-if Module.isDisabled(mod) then
-  log("Disabled, skipping UICellContainer:InitControls()")
-else
-  log("Monkey patching UICellContainer:InitControls()")
+local InitControls = utils_ui.UICellContainer.InitControls
 
-  local InitControls = utils_ui.UICellContainer.InitControls
+function utils_ui.UICellContainer:InitControls(owner, prof, ele_base)
+  local config = Module.config(mod)
+  local state  = Module.state(mod)
 
-  function utils_ui.UICellContainer:InitControls(owner, prof, ele_base)
-    local scale, padScale = config.scale, config.padScale
-    local xmlAspectRatio  = state.xmlAspectRatio
+  local scale, padScale = config.scale, config.padScale
+  local xmlAspectRatio  = state.xmlAspectRatio
 
-    local gridSize = self.grid_size * scale
-    local gridLine = self.grid_line * padScale
+  local gridSize = self.grid_size * scale
+  local gridLine = self.grid_line * padScale
 
-    if shouldAutoResize(self) then
-      -- copy of code in underlying function
-      -- necessary to call container:GetWidth()
-      local container = self.use_frame
-        and owner.xml:InitFrame(prof, ele_base)
-        or  owner.xml:InitStatic(prof, ele_base)
+  if shouldAutoResize(self) then
+    -- copy of code in underlying function
+    -- necessary to call container:GetWidth()
+    local container = self.use_frame
+      and owner.xml:InitFrame(prof, ele_base)
+      or  owner.xml:InitStatic(prof, ele_base)
 
-      -- calculate how many cells can fit in the given width,
-      -- then resize the cells to perfectly fill that space
-      local width       = Utils.correctW(container:GetWidth(), xmlAspectRatio)
-      local itemsPerRow = math.floor(width / (gridSize + gridLine))
-      local cellSize    = width / itemsPerRow
+    -- calculate how many cells can fit in the given width,
+    -- then resize the cells to perfectly fill that space
+    local width       = Utils.correctW(container:GetWidth(), xmlAspectRatio)
+    local itemsPerRow = math.floor(width / (gridSize + gridLine))
+    local cellSize    = width / itemsPerRow
 
-      gridSize = cellSize - gridLine
-    end
-
-    -- grid_size doesn't stretch to aspect ratio but grid_line does
-    self.grid_size = gridSize
-    self.grid_line = Utils.correctW(gridLine, xmlAspectRatio)
-
-    return InitControls(self, owner, prof, ele_base)
+    gridSize = cellSize - gridLine
   end
+
+  -- grid_size doesn't stretch to aspect ratio but grid_line does
+  self.grid_size = gridSize
+  self.grid_line = Utils.correctW(gridLine, xmlAspectRatio)
+
+  return InitControls(self, owner, prof, ele_base)
 end

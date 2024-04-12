@@ -2,11 +2,10 @@ local Dart   = dart_core
 local Module = dart_module
 
 
-local mod    = "messages"
-local config = Dart.config.messages
+local mod = "messages"
 
 
-function parseMessagesWindow(XML)
+function parseMessagesWindow(XML, config)
   local list1 = XML:query("sp_log_list")[1]
   local list2 = XML:query("sp_log_list2")[1]
 
@@ -23,7 +22,7 @@ function parseMessagesWindow(XML)
 end
 
 
-function parseMaingamePdaMsg(XML)
+function parseMaingamePdaMsg(XML, config)
   XML:safeIterate(function(child)
     XML:correctElement(child, {scale = config.scale})
   end)
