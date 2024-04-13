@@ -27,7 +27,7 @@ end
 
 
 function mcmOnLoad(options)
-  options[12] = {
+  options[13] = {
     id = "dart_ammoType",
     sh = true,
     gr = {

@@ -7,11 +7,11 @@ local Module = dart_module
 -- callback version of ipairs
 -- `return nil` acts like filter()
 -- `return value` acts like map()
-function ipairscb(thing, callback)
+function ipairscb(tbl, callback)
   local results
 
-  for index, value in ipairs(thing) do
-    local rvalue = callback(value, index, thing)
+  for index, value in ipairs(tbl) do
+    local rvalue = callback(value, index, tbl)
 
     if rvalue then
       if not results then
@@ -28,11 +28,11 @@ end
 -- callback version of pairs
 -- `return nil` acts like filter()
 -- `return key, value` maps to new table
-function pairscb(thing, callback)
+function pairscb(tbl, callback)
   local results
 
-  for key, value in pairs(thing) do
-    local rkey, rvalue = callback(key, value, thing)
+  for key, value in pairs(tbl) do
+    local rkey, rvalue = callback(key, value, tbl)
 
     if rkey ~= nil and rvalue ~= nil then
       if not results then
@@ -77,9 +77,9 @@ end
 
 
 -- sort teble by key
-function ksort(thing)
+function ksort(tbl)
   local keys = {}
-  for key in pairs(thing) do
+  for key in pairs(tbl) do
     keys[#keys + 1] = key
   end
 
@@ -87,10 +87,20 @@ function ksort(thing)
 
   local sorted = {}
   for index, key in ipairs(keys) do
-    sorted[index] = thing[key]
+    sorted[index] = tbl[key]
   end
 
   return sorted
+end
+
+
+-- index of table value
+function indexof(tbl, value)
+  for i, v in pairs(tbl) do
+    if value == v then
+      return i
+    end
+  end
 end
 
 

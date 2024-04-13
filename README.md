@@ -9,6 +9,7 @@ A collection of UI fixes for non-16:9 displays. Each is modular, independent, an
 - Un-stretched ammo and companion wheels.
 - Global fix for 2D scopes. This fix can replace the ones included in GAMMA. If authored correctly, scopes added by mods should automatically be detected and fixed.
 - Fixed proportions and positions of HUD elements (BHS, faction ID patches, status icons, messages list, companion list).
+- (BETA) Enlarged fonts for 3D PDA (adjustable).
 - Mask fixes (ported from GIRTH with permission).
 - Support for the Ammo Type HUD mod.
 

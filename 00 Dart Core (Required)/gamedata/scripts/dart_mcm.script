@@ -46,9 +46,9 @@ end
 
 function getScaleField(overrides)
   return Utils.merge({
-    hint = "dart_scale",
     id   = "scale",
     type = "track",
+    hint = "dart_scale",
     val  = 2,
     def  = 1,
     min  = 0.1,
