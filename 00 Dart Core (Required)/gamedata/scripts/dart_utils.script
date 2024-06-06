@@ -160,11 +160,6 @@ function getDeviceResolution()
 end
 
 
-function getResolutionOption()
-  return ui_options.get("video/basic/resolution")
-end
-
-
 function getAspectRatio()
   return device().width / device().height
 end

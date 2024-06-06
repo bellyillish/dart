@@ -165,10 +165,12 @@ function refresh()
 end
 
 
--- refresh UI via options change if the resolution isn't changing
-function onOptionChange()
-  if Utils.getDeviceResolution() == Utils.getResolutionOption() then
-    refresh()
+-- refresh UI if a dart option changed
+function mcmOnOptionChange(changes)
+  for key in pairs(changes) do
+    if (key:match("^dart/")) then
+      return refresh()
+    end
   end
 end
 
@@ -211,9 +213,9 @@ AddScriptCallback("on_dart_mcm_config")
 AddScriptCallback("on_dart_pre_refresh")
 AddScriptCallback("on_dart_post_refresh")
 
-RegisterScriptCallback("on_option_change", onOptionChange)
-RegisterScriptCallback("on_screen_resolution_changed", onResolutionChange)
 
 function on_game_start()
+  RegisterScriptCallback("on_screen_resolution_changed", onResolutionChange)
+  RegisterScriptCallback("mcm_option_change", mcmOnOptionChange)
   RegisterScriptCallback("on_key_release", onKeyRelease)
 end
