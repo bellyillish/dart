@@ -209,11 +209,11 @@ function correctX(x, targetRatio, settings)
   if x and align and align[1] and align[1] ~= anchor1 then
     if align[1] == "CENTER" then
       l = Dart.baseWidth / 2 - (r - l) / 2
-      r = Dart.baseWidth / 2 + (r - l) / 2
+      r = Dart.baseWidth / 2 + (r - bounds.l) / 2
       x = x + (l - bounds.l)
     else
       l = Dart.baseWidth - r
-      r = Dart.baseWidth - l
+      r = Dart.baseWidth - bounds.l
       x = x + (l - bounds.l)
     end
 
@@ -270,11 +270,11 @@ function correctY(y, targetRatio, settings)
   if y and align and align[2] and align[2] ~= anchor2 then
     if align[2] == "CENTER" then
       t = Dart.baseHeight / 2 - (b - t) / 2
-      b = Dart.baseHeight / 2 + (b - t) / 2
+      b = Dart.baseHeight / 2 + (b - bounds.t) / 2
       y = y + (t - bounds.t)
     else
-      t = Dart.baseHeight - t
-      b = Dart.baseHeight - b
+      t = Dart.baseHeight - b
+      b = Dart.baseHeight - bounds.t
       y = y + (t - bounds.t)
     end
 

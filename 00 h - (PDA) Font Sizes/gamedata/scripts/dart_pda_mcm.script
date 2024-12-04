@@ -26,7 +26,7 @@ end
 
 
 function mcmOnLoad(options)
-  options[11] = {
+  options[7] = {
     id = "dart_pda",
     sh = true,
     gr = {
@@ -65,12 +65,21 @@ function onPreRefresh()
 
   ui_pda_contacts_tab.SINGLETON     = null
   ui_pda_encyclopedia_tab.SINGLETON = null
-  ui_pda_glitched_tab.SINGLETON     = null
-  ui_pda_npc_tab.SINGLETON          = null
-  ui_pda_radio_tab.SINGLETON        = null
   ui_pda_relations_tab.SINGLETON    = null
-  ui_pda_taskboard_tab.SINGLETON    = null
-  ui_pda_warfare_tab.SINGLETON      = null
+  ui_pda_radio_tab.SINGLETON        = null
+  ui_pda_npc_tab.SINGLETON          = null
+
+  if ui_pda_glitched_tab then
+    ui_pda_glitched_tab.SINGLETON = null
+  end
+
+  if ui_pda_taskboard_tab then
+    ui_pda_taskboard_tab.SINGLETON = null
+  end
+
+  if ui_pda_warfare_tab then
+    ui_pda_warfare_tab.SINGLETON = null
+  end
 end
 
 
