@@ -49,7 +49,12 @@ function mcmOnLoad(options)
       MCM.getOffsetXField({def = config.offset[1]}),
       MCM.getOffsetYField({def = config.offset[2]}),
       MCM.getLine(),
-      MCM.getSpacingField({hint = "dart_statusIcons_spacing", def = config.spacing}),
+      MCM.getSpacingField({
+        hint = "dart_statusIcons_spacing",
+        def  = config.spacing,
+        min  = -128,
+        max  = 128
+      }),
     }
   }
 end

@@ -34,4 +34,8 @@
   <string id="ui_mcm_dart_minimap_clockOffsetY_desc">
     <text>Adjust the vertical position of the clock. Positive values move it down. Negative values move it up.</text>
   </string>
+
+  <string id="ui_mcm_dart_minimap_clockOffset_note">
+    <text>NOTE: this only affects the circular minimap because the clock position is fixed in the square minimap.</text>
+  </string>
 </string_table>

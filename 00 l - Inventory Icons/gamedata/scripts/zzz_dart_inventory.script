@@ -7,15 +7,25 @@ local mod = "inventory"
 Module.createLogger(mod)("Monkey patching UICellContainer:InitControls()")
 
 
--- only auto-resize these container IDs (just a best guess)
+-- only auto-resize these container IDs (best guess)
 function shouldAutoResize(container)
-  return
-    container.ID    == "actor_bag"
+  return nil
+    or container.ID == "actor_bag"
     or container.ID == "actor_trade"
     or container.ID == "actor_trade_bag"
     or container.ID == "npc_bag"
     or container.ID == "npc_trade"
     or container.ID == "npc_trade_bag"
+end
+
+
+function shouldScale(container)
+  local config = Module.config(mod)
+
+  return config.scaleEquipment
+      or  container.ID ~= "actor_equ"
+      and container.ID ~= "actor_belt"
+      and container.ID ~= "actor_quick"
 end
 
 
@@ -48,8 +58,10 @@ function utils_ui.UICellContainer:InitControls(owner, prof, ele_base)
   end
 
   -- grid_size doesn't stretch to aspect ratio but grid_line does
-  self.grid_size = gridSize
-  self.grid_line = Utils.correctW(gridLine, xmlAspectRatio)
+  if shouldScale(self) then
+    self.grid_size = gridSize
+    self.grid_line = Utils.correctW(gridLine, xmlAspectRatio)
+  end
 
   return InitControls(self, owner, prof, ele_base)
 end

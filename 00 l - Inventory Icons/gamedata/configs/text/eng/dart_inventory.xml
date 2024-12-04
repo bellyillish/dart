@@ -15,6 +15,14 @@
     <text>Adjust the size of icons. Values greater than 1 make them larger. Values less than 1 make them smaller.</text>
   </string>
 
+  <string id="ui_mcm_dart_inventory_scaleEquipment">
+    <text>Also Scale Icons for Equipped Items</text>
+  </string>
+
+  <string id="ui_mcm_dart_inventory_scaleEquipment_desc">
+    <text>In addition to inventories, also scale the icons in the player's equipment slots (weapons, armor, belt, quick slots, etc.).</text>
+  </string>
+
   <string id="ui_mcm_dart_inventory_padScale">
     <text>Icon Spacing Scale</text>
   </string>
