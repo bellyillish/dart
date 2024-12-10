@@ -6,6 +6,19 @@ local Utils = dart_utils
 local config = {
   scale    = 1,
   padScale = 0,
+
+  -- rerun these fns after refreshing to restore mod functionality
+  runAfterRefresh = {
+    {"custom_functor_autoinject",         "process_queue"},
+    {"zzz_rax_sortingplus_mcm",           "actor_on_first_update"},
+    {"arti_jamming",                      "on_game_start"},
+    {"indirect_parts_favoriter",          "on_game_start"},
+    {"magazines",                         "on_game_start"},
+    {"TB_RF_Receiver_Packages",           "on_game_start"},
+    {"TB_RF_Receiver",                    "on_game_start"},
+    {"z_auto_looter",                     "on_game_start"},
+    {"zzzz_arti_jamming_repairs",         "on_game_start"},
+  }
 }
 
 
@@ -55,5 +68,35 @@ function mcmOnLoad(options)
 end
 
 
+function onPreRefresh()
+  if ui_inventory.GUI then
+    ui_inventory.GUI:actor_on_net_destroy()
+  end
+end
+
+
+function onPostRefresh()
+  for i, item in ipairs(config.runAfterRefresh) do
+    local fileName, functionName = item[1], item[2]
+
+    if this[fileName] and type(this[fileName][functionName]) == "function" then
+      this[fileName][functionName]()
+    end
+  end
+
+  -- can't check for this the normal way because it's completely borked
+  if
+    not momopate_accurate_stats_mcm
+    and better_stats_bars_mcm
+    and zz_ui_inventory_better_stats_bars
+    and zz_ui_inventory_better_stats_bars.on_option_change
+  then
+    zz_ui_inventory_better_stats_bars.on_option_change()
+  end
+end
+
+
 RegisterScriptCallback("on_dart_mcm_load", mcmOnLoad)
 RegisterScriptCallback("on_dart_mcm_config", mcmOnConfig)
+RegisterScriptCallback("on_dart_pre_refresh", onPreRefresh)
+RegisterScriptCallback("on_dart_post_refresh", onPostRefresh)
