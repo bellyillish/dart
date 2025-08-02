@@ -4,12 +4,12 @@ A bunch of (mostly UI) fixes for GAMMA. Primarily aimed at ultrawide users, but 
 
 DART also lets you customize various UI elements through MCM. You can move and scale the main HUD elements to your liking even if you're not an ultrawide user.
 
-- [The Fixes](the-fixes)
-- [Other Notes/Tips](other-notes-tips)
-- [Installation](installation)
-- [Configuration](configuration)
-- [Credits](credits)
-- [Links](links)
+- [The Fixes](#the-fixes)
+- [Other Notes/Tips](#notestipstroubleshooting)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Credits](#credits)
+- [Links](#links)
 
 
 ## The Fixes
@@ -44,14 +44,8 @@ Fixes the broken layouts of the circular and square minimaps. You can scale, mov
 ### Ammo & Companion Wheels
 Fixes the widths and positions of the ammo and companion wheels. You can scale and move each in MCM. You can also choose to use the round ammo wheel instead of the triangular one in MCM.
 
-### 2D Scopes
-Provides a universal fix for the width/shape of all 2D scopes and fixes any visual glitches (e.g. some scopes have broken layouts in ultrawide). Since fixes are applied on the fly, it works with all 2D scopes including ones added by mods. This module doesn't have any MCM settings. It doesn't (and can't) touch 3D scopes.
-
 ### Inventory Icons
 Lets you adjust the scale of and spacing between inventory icons in MCM. Also automatically tweaks the size of these icons to fill the available space and prevent them from getting cut off in the UI. Note that the spacing setting is experimental and can cause icons to get cut off anyway. Leaving it at 0 will minimize this.
-
-### Mask Overlays
-Fixes the distortion of mask overlays in ultrawide. This fix comes as-is courtesy of the GIRTH mod.
 
 ### Ammo Type HUD
 This is for a relatively obscure but good little mod. If you haven't installed this mod on your own then you don't need this module. If you did, it will fix the position of the ammo type text so it doesn't overlap the BHS HUD.
