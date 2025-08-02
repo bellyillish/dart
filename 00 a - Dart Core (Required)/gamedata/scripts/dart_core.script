@@ -48,12 +48,4 @@ xmlAspectRatios = {
 -- replace files on left with ones on right
 xmlFileReplacements = {
   ["ui\\zone_map_21.xml"] = "ui\\zone_map_16.xml",
-  ["ui\\scopes_21.xml"]   = "ui\\scopes_16.xml",
 }
-
--- template for missing left/right scope fillers
-scopeFillerTemplate = [[
-  <auto_static x="0" y="0" width="0" height="768" stretch="1">
-    <texture>%s</texture>
-  </auto_static>
-]]
